@@ -56,7 +56,7 @@ The easiest way to run the dashboard is using **Docker Compose**.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/[YOUR_USERNAME]/media-dashboard.git
+   git clone https://github.com/aragorn2909/media-dashboard.git
    cd media-dashboard
    ```
 
@@ -77,4 +77,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) for details. (Note: Add a LICENSE file if needed)
+GPL 2.0 License - see [LICENSE](LICENSE) for details.
