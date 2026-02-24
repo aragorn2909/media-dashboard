@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - TV Shows</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .result-poster {
+            width: 60px;
+            height: 88px;
+            border-radius: 8px;
+            object-fit: cover;
+            background-color: var(--surface-light);
+            flex-shrink: 0;
+        }
+
+        .result-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .add-form {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .add-form select {
+            padding: 8px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-glass);
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .search-result-card {
+            background: var(--surface-light);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            border: 1px solid var(--border-glass);
+        }
+
+        .search-result-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .badge-continuing {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-ended {
+            background-color: rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .badge-monitored {
+            background-color: rgba(99, 102, 241, 0.2);
+            color: var(--primary-color);
+        }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 100;
+            animation: slideUp 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .toast-success {
+            background-color: rgba(16, 185, 129, 0.9);
+        }
+
+        .toast-error {
+            background-color: rgba(239, 68, 68, 0.9);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>TV Shows</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+        <div style="display: flex; gap: 16px; margin-bottom: 32px;">
+            <div style="flex: 1; position: relative;">
+                <span class="material-icons"
+                    style="position: absolute; left: 16px; top: 12px; color: var(--text-secondary); font-size: 20px;">search</span>
+                <input type="text" id="search-input" placeholder="Search for a TV show to add..."
+                    style="width: 100%; padding-left: 48px;" onkeydown="if(event.key==='Enter')searchSeries()">
+            </div>
+            <button class="btn btn-primary" onclick="searchSeries()">
+                <span class="material-icons">search</span> Search
+            </button>
+        </div>
+
+        <div id="search-results"></div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2
+                style="font-size: 16px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons" style="font-size: 18px;">list</span> Your TV Shows
+            </h2>
+            <button class="btn" style="background: var(--surface-light); color: var(--text-primary);"
+                onclick="loadSeries()">
+                <span class="material-icons">refresh</span> Refresh
+            </button>
+        </div>
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="series-list">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading series...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rootFolders = [];
+        let qualityProfiles = [];
+
+        async function init() {
+            try {
+                const [rf, qp] = await Promise.all([
+                    fetch('/api/sonarr/rootfolders').then(r => r.json()),
+                    fetch('/api/sonarr/qualityprofiles').then(r => r.json())
+                ]);
+                rootFolders = rf;
+                qualityProfiles = qp;
+            } catch (e) {
+                console.error('Failed to load config:', e);
+            }
+            loadSeries();
+        }
+
+        async function searchSeries() {
+            const term = document.getElementById('search-input').value.trim();
+            if (!term) return;
+
+            const container = document.getElementById('search-results');
+            container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Searching...</div>';
+
+            try {
+                const resp = await fetch(`/api/sonarr/series/search?term=${encodeURIComponent(term)}`);
+                const results = await resp.json();
+                renderSearchResults(results);
+            } catch (e) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Search failed. Check Sonarr connection.</div>';
+            }
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('search-results');
+            if (!results.length) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No results found.</div>';
+                return;
+            }
+
+            const rfOptions = rootFolders.map(f => `<option value="${f.path}">${f.path}</option>`).join('');
+            const qpOptions = qualityProfiles.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+            container.innerHTML = '<h2 style="font-size: 16px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;"><span class="material-icons" style="font-size: 18px;">search</span> Search Results</h2><div class="search-results">' +
+                results.slice(0, 20).map(s => {
+                    const poster = s.images && s.images.find(i => i.coverType === 'poster');
+                    const posterUrl = poster ? poster.remoteUrl : '';
+                    const year = s.year || 'N/A';
+                    const overview = s.overview ? s.overview.substring(0, 100) + '...' : '';
+                    return `<div class="search-result-card">
+                        ${posterUrl ? `<img class="result-poster" src="${posterUrl}" alt="">` : '<div class="result-poster"></div>'}
+                        <div class="result-info">
+                            <div class="result-title">${s.title}</div>
+                            <div class="result-meta">${year} · ${s.seasonCount || 0} seasons</div>
+                            <div class="result-meta">${overview}</div>
+                            <div class="add-form">
+                                <select class="rf-select">${rfOptions}</select>
+                                <select class="qp-select">${qpOptions}</select>
+                                <button class="btn btn-success" style="font-size:12px; padding:6px 12px;" onclick='addSeries(${JSON.stringify(s).replace(/'/g, "\\'")}  , this)'>
+                                    <span class="material-icons" style="font-size:14px">add</span> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('') + '</div>';
+        }
+
+        async function addSeries(series, btn) {
+            const card = btn.closest('.search-result-card');
+            const rfPath = card.querySelector('.rf-select').value;
+            const qpId = parseInt(card.querySelector('.qp-select').value);
+
+            const body = {
+                title: series.title,
+                tvdbId: series.tvdbId,
+                qualityProfileId: qpId,
+                rootFolderPath: rfPath,
+                monitored: true,
+                seasonFolder: true,
+                addOptions: { searchForMissingEpisodes: true }
+            };
+
+            btn.disabled = true;
+            btn.textContent = 'Adding...';
+
+            try {
+                const resp = await fetch('/api/sonarr/series', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (resp.ok) {
+                    showToast('Series added successfully!', 'success');
+                    btn.textContent = '✓ Added';
+                    loadSeries();
+                } else {
+                    const err = await resp.text();
+                    showToast('Failed to add: ' + err, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Add';
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Add';
+            }
+        }
+
+        async function loadSeries() {
+            try {
+                const resp = await fetch('/api/sonarr/series');
+                const series = await resp.json();
+                renderSeries(series);
+            } catch (e) {
+                document.getElementById('series-list').innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load series. Check Sonarr connection.</div>';
+            }
+        }
+
+        function renderSeries(series) {
+            const container = document.getElementById('series-list');
+            if (!series.length) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No series found. Use the search bar to add some!</div>';
+                return;
+            }
+
+            series.sort((a, b) => a.sortTitle.localeCompare(b.sortTitle));
+
+            container.innerHTML = `<table>
+                <thead><tr>
+                    <th>Title</th>
+                    <th>Year</th>
+                    <th>Seasons</th>
+                    <th>Status</th>
+                    <th>Monitored</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>${series.map(s => `<tr>
+                    <td><strong>${s.title}</strong></td>
+                    <td>${s.year || '-'}</td>
+                    <td>${s.seasonCount || 0}</td>
+                    <td><span class="status-badge ${s.status === 'continuing' ? 'badge-continuing' : 'badge-ended'}">${s.status || 'unknown'}</span></td>
+                    <td>${s.monitored ? '<span class="status-badge badge-monitored">Yes</span>' : 'No'}</td>
+                    <td><button class="btn btn-danger" style="font-size:12px; padding:6px 12px;" onclick="deleteSeries(${s.id}, '${s.title.replace(/'/g, "\\'")}')">
+                        <span class="material-icons" style="font-size:14px">delete</span> Remove
+                    </button></td>
+                </tr>`).join('')}</tbody>
+            </table>`;
+        }
+
+        async function deleteSeries(id, title) {
+            if (!confirm(`Remove "${title}" from Sonarr? This will NOT delete files.`)) return;
+            try {
+                const resp = await fetch(`/api/sonarr/series/${id}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    showToast('Series removed!', 'success');
+                    loadSeries();
+                } else {
+                    showToast('Failed to remove series.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

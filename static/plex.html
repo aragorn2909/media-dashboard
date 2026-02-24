@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Plex</title>
+    <meta name="description" content="Plex Media Server — active sessions, recently added content and library overview">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        /* ── Section headings ───────────────────────────────────── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 32px 0 16px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .section-header .material-icons {
+            font-size: 18px;
+            color: var(--primary-color);
+        }
+
+        /* ── Now Playing ────────────────────────────────────────── */
+        .session-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .session-item:last-child {
+            border-bottom: none;
+        }
+
+        .session-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .session-icon .material-icons {
+            font-size: 20px;
+            color: white;
+        }
+
+        .session-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .session-title {
+            font-weight: 600;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .playing-pill {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .playing-pill::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        /* ── Recently Added Grid ────────────────────────────────── */
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .media-card {
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: default;
+        }
+
+        .media-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .media-poster {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background: var(--surface-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .media-poster img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .media-poster .poster-fallback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-tertiary);
+        }
+
+        .media-poster .poster-fallback .material-icons {
+            font-size: 36px;
+        }
+
+        .type-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .type-movie {
+            background: rgba(99, 102, 241, 0.85);
+            color: white;
+        }
+
+        .type-episode {
+            background: rgba(16, 185, 129, 0.85);
+            color: white;
+        }
+
+        .type-other {
+            background: rgba(100, 116, 139, 0.85);
+            color: white;
+        }
+
+        .media-info {
+            padding: 10px 12px 12px;
+        }
+
+        .media-title {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .media-subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+
+        /* ── Libraries ──────────────────────────────────────────── */
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .library-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .library-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+            background: var(--surface-light);
+        }
+
+        .lib-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .lib-icon.movie {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+
+        .lib-icon.show {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .lib-icon.music {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .lib-icon.photo {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+
+        .lib-icon.other {
+            background: linear-gradient(135deg, #64748b, #475569);
+        }
+
+        .lib-icon .material-icons {
+            font-size: 22px;
+            color: white;
+        }
+
+        .lib-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .lib-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .lib-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* ── Empty / Loading states ─────────────────────────────── */
+        .state-box {
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .state-box .material-icons {
+            font-size: 40px;
+            margin-bottom: 12px;
+            display: block;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display:flex;align-items:center;gap:16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width:32px;height:32px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+            <h1>Plex</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+
+        <!-- Now Playing -->
+        <div class="section-header">
+            <span class="material-icons">play_circle</span>
+            Now Playing
+            <span id="session-count"
+                style="margin-left:auto;font-size:12px;color:var(--text-tertiary);font-weight:500;text-transform:none;letter-spacing:0;"></span>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;" id="sessions-card">
+            <div class="state-box"><span class="material-icons">hourglass_empty</span>Loading sessions…</div>
+        </div>
+
+        <!-- Recently Added -->
+        <div class="section-header" style="margin-top:40px;">
+            <span class="material-icons">new_releases</span>
+            Recently Added
+            <a id="plex-link" href="#" target="_blank"
+                style="margin-left:auto;font-size:12px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--primary-color);text-decoration:none;">
+                Open Plex →
+            </a>
+        </div>
+        <div id="recently-added-container">
+            <div class="state-box"><span class="material-icons">hourglass_empty</span>Loading recently added…</div>
+        </div>
+
+        <!-- Libraries -->
+        <div class="section-header" style="margin-top:40px;">
+            <span class="material-icons">video_library</span>
+            Libraries
+        </div>
+        <div id="libraries-container">
+            <div class="state-box"><span class="material-icons">hourglass_empty</span>Loading libraries…</div>
+        </div>
+
+    </div>
+
+    <script>
+        const LIB_ICON = { movie: 'movie', show: 'tv', music: 'music_note', photo: 'photo_library' };
+        const LIB_CLASS = { movie: 'movie', show: 'show', music: 'music', photo: 'photo' };
+
+        let plexBase = '';
+        let machineId = '';
+
+        async function init() {
+            // Set Plex link and fetch machine ID in parallel
+            try {
+                const [cfg, info] = await Promise.all([
+                    fetch('/api/config').then(r => r.json()),
+                    fetch('/api/plex/server-info').then(r => r.json()).catch(() => ({}))
+                ]);
+                if (cfg.plex_url) {
+                    plexBase = cfg.plex_url.replace(/\/$/, '');
+                    document.getElementById('plex-link').href = plexBase;
+                }
+                machineId = info.machine_id || '';
+            } catch (_) { }
+
+            // Load all sections in parallel
+            await Promise.allSettled([loadSessions(), loadRecentlyAdded(), loadLibraries()]);
+        }
+
+        // ── Sessions ──────────────────────────────────────────────
+        async function loadSessions() {
+            const card = document.getElementById('sessions-card');
+            try {
+                const statuses = await fetch('/api/status').then(r => r.json());
+                const plex = statuses.find(s => s.name === 'Plex');
+                const sessions = plex?.extras?.sessions ?? [];
+                const count = plex?.extras?.active_sessions ?? 0;
+
+                document.getElementById('session-count').textContent = count > 0
+                    ? `${count} active` : '';
+
+                if (!sessions.length) {
+                    card.innerHTML = `<div class="state-box">
+                        <span class="material-icons">tv_off</span>
+                        Nothing playing right now
+                    </div>`;
+                    return;
+                }
+
+                card.innerHTML = sessions.map(s => `
+                    <div class="session-item">
+                        <div class="session-icon"><span class="material-icons">play_arrow</span></div>
+                        <div class="session-info">
+                            <div class="session-title">${escHtml(s)}</div>
+                        </div>
+                        <div class="playing-pill">Playing</div>
+                    </div>`).join('');
+            } catch (e) {
+                card.innerHTML = `<div class="state-box"><span class="material-icons">error_outline</span>Could not load sessions</div>`;
+            }
+        }
+
+        // ── Recently Added ────────────────────────────────────────
+        async function loadRecentlyAdded() {
+            const container = document.getElementById('recently-added-container');
+            try {
+                const items = await fetch('/api/plex/recently-added').then(r => r.json());
+                if (!Array.isArray(items) || !items.length) {
+                    container.innerHTML = `<div class="state-box"><span class="material-icons">inbox</span>No recently added items found</div>`;
+                    return;
+                }
+                container.innerHTML = `<div class="media-grid">${items.map(item => {
+                    const typeClass = item.media_type === 'movie' ? 'type-movie'
+                        : item.media_type === 'episode' ? 'type-episode' : 'type-other';
+                    const typeLabel = item.media_type === 'episode' ? 'Episode'
+                        : item.media_type === 'movie' ? 'Movie'
+                            : item.media_type;
+                    const subtitle = item.media_type === 'episode' && item.grandparent_title
+                        ? item.grandparent_title
+                        : item.year ? String(item.year) : '';
+
+                    const posterHtml = item.thumb
+                        ? `<img src="${escHtml(item.thumb)}" alt="${escHtml(item.title)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'poster-fallback\\'><span class=\\'material-icons\\'>movie</span></div>'">`
+                        : `<div class="poster-fallback"><span class="material-icons">${item.media_type === 'episode' ? 'tv' : 'movie'}</span></div>`;
+
+                    return `<div class="media-card">
+                        <div class="media-poster">
+                            ${posterHtml}
+                            <span class="type-badge ${typeClass}">${typeLabel}</span>
+                        </div>
+                        <div class="media-info">
+                            <div class="media-title">${escHtml(item.title)}</div>
+                            ${subtitle ? `<div class="media-subtitle">${escHtml(subtitle)}</div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('')}</div>`;
+            } catch (e) {
+                container.innerHTML = `<div class="state-box"><span class="material-icons">error_outline</span>Could not load recently added</div>`;
+            }
+        }
+
+        // ── Libraries ─────────────────────────────────────────────
+        async function loadLibraries() {
+            const container = document.getElementById('libraries-container');
+            try {
+                const libs = await fetch('/api/plex/libraries').then(r => r.json());
+                if (!Array.isArray(libs) || !libs.length) {
+                    container.innerHTML = `<div class="state-box"><span class="material-icons">inbox</span>No libraries found</div>`;
+                    return;
+                }
+                container.innerHTML = `<div class="library-grid">${libs.map(lib => {
+                    const icon = LIB_ICON[lib.lib_type] ?? 'folder';
+                    const cls = LIB_CLASS[lib.lib_type] ?? 'other';
+                    const countLabel = lib.count > 0 ? `${lib.count.toLocaleString()} items` : 'Empty';
+                    // Use app.plex.tv deep link if we have a machine ID, else fall back to Plex URL
+                    const href = machineId
+                        ? `https://app.plex.tv/desktop/#!/media/${machineId}/com.plexapp.plugins.library?source=${encodeURIComponent(lib.key)}`
+                        : (plexBase || '#');
+                    return `<a class="library-card" href="${escHtml(href)}" target="_blank" rel="noopener">
+                        <div class="lib-icon ${cls}"><span class="material-icons">${icon}</span></div>
+                        <div class="lib-info">
+                            <div class="lib-name">${escHtml(lib.title)}</div>
+                            <div class="lib-count">${countLabel}</div>
+                        </div>
+                    </a>`;
+                }).join('')}</div>`;
+            } catch (e) {
+                container.innerHTML = `<div class="state-box"><span class="material-icons">error_outline</span>Could not load libraries</div>`;
+            }
+        }
+
+        function escHtml(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

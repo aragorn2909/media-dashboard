@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard v2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>Media Dashboard</h1>
+        </div>
+        <nav>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+        <div style="flex-grow: 1; max-width: 300px; position: relative; margin-left: 24px;">
+            <span class="material-icons"
+                style="position: absolute; left: 12px; top: 10px; color: var(--text-secondary); pointer-events: none; font-size: 18px;">search</span>
+            <input type="text" id="global-search" placeholder="Search library..."
+                style="padding-top:8px; padding-bottom:8px">
+            <div id="search-overlay"
+                style="display: none; position: absolute; top: 48px; left: 0; right: 0; background: var(--bg-color); border: 1px solid var(--border-glass); border-radius: 12px; box-shadow: var(--card-shadow); z-index: 1001; max-height: 400px; overflow-y: auto; padding: 12px;">
+                <div id="search-results-content"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+        <!-- Stats Row -->
+        <div id="stats-container" style="margin-bottom: 32px; display: none;">
+            <div class="card"
+                style="flex-direction: row; align-items: center; justify-content: space-between; padding: 16px 24px;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="background: rgba(99, 102, 241, 0.1); padding: 12px; border-radius: 12px;">
+                        <span class="material-icons"
+                            style="font-size: 32px; color: var(--primary-color);">analytics</span>
+                    </div>
+                    <div>
+                        <div
+                            style="font-size: 14px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                            Library Ecosystem</div>
+                        <div id="disk-stats" style="font-size: 16px; font-weight: 500; margin-top: 4px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Calendar -->
+        <div id="calendar-container" style="margin-bottom: 32px; display: none;">
+            <h2
+                style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; text-transform: uppercase;">
+                <span class="material-icons" style="font-size:18px">event</span> Release Schedule
+            </h2>
+            <div id="calendar-grid"
+                style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 12px; scroll-behavior: smooth;">
+                <!-- Calendar items injected here -->
+            </div>
+        </div>
+
+        <div id="status-grid" class="grid">
+            <!-- Cards will be injected here -->
+            <div class="card">
+                <p>Loading status...</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Rust Media Dashboard (Alpha)
+    </footer>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const statuses = await response.json();
+                renderStatus(statuses);
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
+
+        const SERVICE_LINKS = {
+            'Sonarr': '/sonarr.html',
+            'Radarr': '/radarr.html',
+            'Transmission': '/transmission.html',
+            'Jackett': '/jackett.html',
+            'Plex': '/plex.html',
+        };
+
+        function renderExtras(service) {
+            const e = service.extras;
+            if (!e || !service.active) return '';
+
+            switch (service.name) {
+                case 'Sonarr':
+                    return `<div class="extras">
+                        <div class="extras-row"><span class="material-icons" style="font-size:16px">live_tv</span> ${e.total_series || 0} series</div>
+                        ${e.missing_episodes > 0
+                            ? `<div class="extras-row extras-warning"><span class="material-icons" style="font-size:16px">warning</span> ${e.missing_episodes} missing episodes</div>`
+                            : `<div class="extras-row extras-ok"><span class="material-icons" style="font-size:16px">check_circle</span> No missing episodes</div>`}
+                    </div>`;
+
+                case 'Radarr':
+                    return `<div class="extras">
+                        <div class="extras-row"><span class="material-icons" style="font-size:16px">movie</span> ${e.total_movies || 0} movies</div>
+                        ${e.missing_movies > 0
+                            ? `<div class="extras-row extras-warning"><span class="material-icons" style="font-size:16px">warning</span> ${e.missing_movies} missing</div>`
+                            : `<div class="extras-row extras-ok"><span class="material-icons" style="font-size:16px">check_circle</span> All downloaded</div>`}
+                    </div>`;
+
+                case 'Transmission':
+                    if (e.downloading > 0) {
+                        const names = (e.downloading_names || []).map(n =>
+                            `<div class="extras-dl-item">${n}</div>`
+                        ).join('');
+                        return `<div class="extras">
+                            <div class="extras-row"><span class="material-icons" style="font-size:16px">download</span> ${e.downloading} downloading · ${e.total_torrents || 0} total</div>
+                            ${names}
+                        </div>`;
+                    }
+                    return `<div class="extras">
+                        <div class="extras-row extras-ok"><span class="material-icons" style="font-size:16px">check_circle</span> ${e.total_torrents || 0} torrents · None downloading</div>
+                    </div>`;
+
+                case 'Jackett':
+                    if (e.failed_count > 0) {
+                        const failed = (e.failed_indexers || []).join(', ');
+                        return `<div class="extras">
+                            <div class="extras-row"><span class="material-icons" style="font-size:16px">dns</span> ${e.total_indexers || 0} indexers</div>
+                            <div class="extras-row extras-error"><span class="material-icons" style="font-size:16px">error</span> Down: ${failed}</div>
+                        </div>`;
+                    }
+                    return `<div class="extras">
+                        <div class="extras-row extras-ok"><span class="material-icons" style="font-size:16px">check_circle</span> ${e.total_indexers || 0} indexers · All healthy</div>
+                    </div>`;
+
+                case 'Plex':
+                case 'Jellyfin':
+                case 'Emby':
+                    if (e.active_sessions > 0) {
+                        const icon = service.name === 'Plex' ? 'play_circle' : 'play_arrow';
+                        const sessions = (e.sessions || []).map(s =>
+                            `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; padding-left: 24px;">• ${s}</div>`
+                        ).join('');
+                        return `<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-glass);">
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--accent-teal); font-weight: 600;">
+                                <span class="material-icons" style="font-size:18px">${icon}</span> 
+                                ${e.active_sessions} Active Session${e.active_sessions > 1 ? 's' : ''}
+                            </div>
+                            ${sessions}
+                        </div>`;
+                    }
+                    return `<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-glass); opacity: 0.6;">
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary);">
+                            <span class="material-icons" style="font-size:16px">check_circle</span> Standby
+                        </div>
+                    </div>`;
+
+                default:
+                    return '';
+            }
+        }
+
+        function renderStatus(statuses) {
+            const grid = document.getElementById('status-grid');
+            grid.innerHTML = '';
+
+            statuses.forEach(service => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.style.cursor = 'pointer';
+
+                const statusClass = service.active ? 'badge-seeding' : 'badge-paused';
+                const statusText = service.active ? 'Online' : 'Offline';
+                const link = SERVICE_LINKS[service.name] || '#';
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${getIcon(service.name)}" alt="${service.name}" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+                            <span style="font-size: 18px; font-weight: 700;">${service.name}</span>
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    ${service.version ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; opacity: 0.7;">v${service.version}</div>` : ''}
+                    <div style="font-size: 14px; color: var(--text-primary); line-height: 1.5;">${service.message}</div>
+                    ${renderExtras(service)}
+                `;
+                card.onclick = () => window.location.href = link;
+                grid.appendChild(card);
+            });
+        }
+
+        function getIcon(name) {
+            const icons = {
+                'Sonarr': '/sonarr.svg',
+                'Radarr': '/radarr.svg',
+                'Transmission': '/transmission.svg',
+                'Jackett': '/jackett.svg',
+                'Plex': '/plex.svg',
+                'Jellyfin': '/jellyfin.svg',
+                'Emby': '/emby.svg'
+            };
+            return icons[name] || '/favicon.svg';
+        }
+
+        let globalSeriesCache = {};
+        let seriesCacheLoaded = false;
+
+        async function fetchSeriesCache() {
+            try {
+                const resp = await fetch('/api/sonarr/series');
+                if (resp.ok) {
+                    const series = await resp.json();
+                    series.forEach(s => {
+                        globalSeriesCache[s.id] = s.title;
+                    });
+                }
+                seriesCacheLoaded = true;
+            } catch (e) {
+                console.error('Series cache error:', e);
+                seriesCacheLoaded = true; // Don't block indefinitely on error
+            }
+        }
+
+        fetchStatus();
+        fetchCalendar();
+        fetchStats();
+        setInterval(fetchStatus, 30000); // Update every 30 seconds
+
+        async function fetchCalendar() {
+            if (!seriesCacheLoaded) await fetchSeriesCache();
+            try {
+                const resp = await fetch('/api/calendar');
+                const data = await resp.json();
+                renderCalendar(data);
+            } catch (e) { console.error('Calendar error:', e); }
+        }
+
+        async function fetchStats() {
+            try {
+                const resp = await fetch('/api/stats');
+                const data = await resp.json();
+                renderStats(data);
+            } catch (e) { console.error('Stats error:', e); }
+        }
+
+        function renderCalendar(data) {
+            const container = document.getElementById('calendar-container');
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            let items = [];
+            if (data.sonarr && Array.isArray(data.sonarr)) {
+                data.sonarr.forEach(ep => {
+                    items.push({
+                        date: new Date(ep.airDateUtc),
+                        title: (ep.series && ep.series.title) ? ep.series.title : (globalSeriesCache[ep.seriesId] || 'Unknown Series'),
+                        detail: `S${ep.seasonNumber}E${ep.episodeNumber} - ${ep.title}`,
+                        type: 'tv'
+                    });
+                });
+            }
+            if (data.radarr && Array.isArray(data.radarr)) {
+                data.radarr.forEach(movie => {
+                    const release = movie.digitalRelease || movie.physicalRelease || movie.inCinemas;
+                    if (release) {
+                        items.push({
+                            date: new Date(release),
+                            title: movie.title,
+                            detail: movie.year,
+                            type: 'movie'
+                        });
+                    }
+                });
+            }
+
+            if (items.length > 0) {
+                container.style.display = 'block';
+                items.sort((a, b) => a.date - b.date);
+                items.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'glass';
+                    el.style.minWidth = '240px';
+                    el.style.padding = '16px';
+                    el.style.borderRadius = '12px';
+                    el.style.borderLeft = `4px solid ${item.type === 'tv' ? 'var(--primary-color)' : 'var(--accent-rose)'}`;
+                    el.style.flexShrink = '0';
+
+                    const dateStr = item.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                    el.innerHTML = `
+                        <div style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; font-weight:700; letter-spacing:0.5px">${dateStr}</div>
+                        <div style="font-weight:600; margin:8px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-primary)" title="${item.title}">${item.title}</div>
+                        <div style="font-size:12px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis" title="${item.detail}">${item.detail}</div>
+                    `;
+                    grid.appendChild(el);
+                });
+            }
+        }
+
+        function renderStats(data) {
+            const container = document.getElementById('stats-container');
+            const diskDiv = document.getElementById('disk-stats');
+
+            let statsStr = [];
+            const seenPaths = new Set();
+
+            const processDisk = (diskData) => {
+                if (diskData && Array.isArray(diskData)) {
+                    diskData.forEach(d => {
+                        if (!seenPaths.has(d.path)) {
+                            const freeGb = (d.freeSpace / 1024 / 1024 / 1024).toFixed(0);
+                            const totalGb = (d.totalSpace / 1024 / 1024 / 1024).toFixed(0);
+                            const freeTb = (d.freeSpace / 1024 / 1024 / 1024 / 1024).toFixed(2);
+                            statsStr.push(`${d.path}: <strong>${freeTb} TB</strong> Free (${freeGb}/${totalGb} GB)`);
+                            seenPaths.add(d.path);
+                        }
+                    });
+                }
+            };
+
+            processDisk(data.sonarr_disk);
+            processDisk(data.radarr_disk);
+
+            if (statsStr.length > 0) {
+                container.style.display = 'block';
+                diskDiv.innerHTML = statsStr.join(' <span style="margin:0 12px; opacity:0.3">|</span> ');
+            }
+        }
+
+        // Global Search Implementation
+        const globalSearch = document.getElementById('global-search');
+        const searchOverlay = document.getElementById('search-overlay');
+        const searchContent = document.getElementById('search-results-content');
+
+        let searchTimeout;
+        globalSearch.oninput = (e) => {
+            clearTimeout(searchTimeout);
+            const term = e.target.value.trim();
+            if (term.length < 2) {
+                searchOverlay.style.display = 'none';
+                return;
+            }
+            searchTimeout = setTimeout(() => performGlobalSearch(term), 500);
+        };
+
+        async function performGlobalSearch(term) {
+            searchOverlay.style.display = 'block';
+            searchContent.innerHTML = '<div style="padding:10px">Searching...</div>';
+            try {
+                const resp = await fetch(`/api/search?term=${encodeURIComponent(term)}`);
+                const results = await resp.json();
+                renderSearchResults(results);
+            } catch (e) {
+                searchContent.innerHTML = '<div style="padding:10px; color:var(--error)">Search failed</div>';
+            }
+        }
+
+        function renderSearchResults(results) {
+            let html = '';
+
+            if (results.sonarr && Array.isArray(results.sonarr) && results.sonarr.length > 0) {
+                html += '<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--primary-color)"><span class="material-icons" style="font-size:18px">tv</span> <strong>TV Shows</strong></div>';
+                results.sonarr.slice(0, 5).forEach(s => {
+                    html += `<div class="search-result-item" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; border-radius:4px;" 
+                        onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+                        onmouseout="this.style.background='transparent'"
+                        onclick="location.href='/sonarr.html?search=${encodeURIComponent(s.title)}'">
+                        <div style="font-weight:500">${s.title} (${s.year || '?'})</div>
+                        <div style="font-size:12px; color:var(--text-secondary)">${s.network || 'Unknown Network'}</div>
+                    </div>`;
+                });
+            }
+
+            if (results.radarr && Array.isArray(results.radarr) && results.radarr.length > 0) {
+                html += '<div style="display:flex; align-items:center; gap:8px; margin: 16px 0 8px 0; color:var(--primary-color)"><span class="material-icons" style="font-size:18px">movie</span> <strong>Movies</strong></div>';
+                results.radarr.slice(0, 5).forEach(m => {
+                    html += `<div class="search-result-item" style="padding: 10px; border-bottom: 1px solid #333; cursor: pointer; border-radius:4px;" 
+                        onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+                        onmouseout="this.style.background='transparent'"
+                        onclick="location.href='/radarr.html?search=${encodeURIComponent(m.title)}'">
+                        <div style="font-weight:500">${m.title} (${m.year || '?'})</div>
+                        <div style="font-size:12px; color:var(--text-secondary)">${m.status || 'Status Unknown'}</div>
+                    </div>`;
+                });
+            }
+
+            if (!html) html = '<div style="padding:10px">No results found</div>';
+            searchContent.innerHTML = html;
+        }
+
+        // Hide search when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!globalSearch.contains(e.target) && !searchOverlay.contains(e.target)) {
+                searchOverlay.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>

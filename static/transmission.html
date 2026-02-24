@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Torrents</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--surface-light);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-downloading {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-teal));
+        }
+
+        .progress-seeding {
+            background: linear-gradient(90deg, var(--success), #66bb6a);
+        }
+
+        .progress-paused {
+            background-color: var(--text-secondary);
+        }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-downloading {
+            background-color: rgba(99, 102, 241, 0.2);
+            color: var(--primary-color);
+        }
+
+        .badge-seeding {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-paused {
+            background-color: rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .badge-error {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>Torrents</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div style="display: flex; gap: 16px; margin-bottom: 32px;">
+            <div style="flex: 1; position: relative;">
+                <span class="material-icons"
+                    style="position: absolute; left: 16px; top: 12px; color: var(--text-secondary); font-size: 20px;">link</span>
+                <input type="text" id="torrent-input" placeholder="Paste a magnet link or .torrent URL..."
+                    style="width: 100%; padding-left: 48px;" onkeydown="if(event.key==='Enter')addTorrent()">
+            </div>
+            <button class="btn btn-success" onclick="addTorrent()">
+                <span class="material-icons">add</span> Add Torrent
+            </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2
+                style="font-size: 16px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons" style="font-size:18px">swap_vert</span> Active Torrents
+                <span id="torrent-count" style="font-size:14px; opacity:0.6"></span>
+            </h2>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="torrents-list">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading torrents...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STATUS_MAP = {
+            0: { label: 'Stopped', class: 'badge-paused', progress: 'progress-paused' },
+            1: { label: 'Queued (Verify)', class: 'badge-paused', progress: 'progress-paused' },
+            2: { label: 'Verifying', class: 'badge-downloading', progress: 'progress-downloading' },
+            3: { label: 'Queued', class: 'badge-paused', progress: 'progress-paused' },
+            4: { label: 'Downloading', class: 'badge-downloading', progress: 'progress-downloading' },
+            5: { label: 'Queued (Seed)', class: 'badge-seeding', progress: 'progress-seeding' },
+            6: { label: 'Seeding', class: 'badge-seeding', progress: 'progress-seeding' },
+        };
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+        }
+
+        function formatSpeed(bytesPerSec) {
+            if (bytesPerSec === 0) return '-';
+            return formatSize(bytesPerSec) + '/s';
+        }
+
+        function formatEta(seconds) {
+            if (seconds < 0) return '∞';
+            if (seconds === 0) return '-';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            if (h > 0) return `${h}h ${m}m`;
+            return `${m}m`;
+        }
+
+        async function loadTorrents() {
+            try {
+                const resp = await fetch('/api/transmission/torrents');
+                const data = await resp.json();
+                const torrents = data.arguments ? data.arguments.torrents : [];
+                renderTorrents(torrents);
+            } catch (e) {
+                document.getElementById('torrents-list').innerHTML = '<div class="empty">Failed to load torrents. Check Transmission connection.</div>';
+            }
+        }
+
+        function renderTorrents(torrents) {
+            const container = document.getElementById('torrents-list');
+            document.getElementById('torrent-count').textContent = `(${torrents.length})`;
+
+            if (!torrents.length) {
+                container.innerHTML = '<div class="empty">No active torrents.</div>';
+                return;
+            }
+
+            container.innerHTML = `<table>
+                <thead><tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                    <th>Down</th>
+                    <th>Up</th>
+                    <th>ETA</th>
+                    <th></th>
+                </tr></thead>
+                <tbody>${torrents.map(t => {
+                const pct = Math.round(t.percentDone * 100);
+                const s = STATUS_MAP[t.status] || STATUS_MAP[0];
+                const hasError = t.errorString && t.errorString.length > 0;
+                return `<tr>
+                        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${t.name}">
+                            <strong>${t.name}</strong>
+                            ${hasError ? `<div style="color:var(--error); font-size:11px;">${t.errorString}</div>` : ''}
+                        </td>
+                        <td>${formatSize(t.sizeWhenDone)}</td>
+                        <td style="min-width:120px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div class="progress-bar"><div class="progress-fill ${s.progress}" style="width:${pct}%"></div></div>
+                                <span style="font-size:12px; white-space:nowrap;">${pct}%</span>
+                            </div>
+                        </td>
+                        <td><span class="status-badge ${hasError ? 'badge-error' : s.class}">${hasError ? 'Error' : s.label}</span></td>
+                        <td class="speed">${formatSpeed(t.rateDownload)}</td>
+                        <td class="speed">${formatSpeed(t.rateUpload)}</td>
+                        <td>${formatEta(t.eta)}</td>
+                        <td>
+                            <div style="display:flex; gap:4px;">
+                                ${t.status === 0
+                        ? `<button class="btn btn-primary" style="padding:4px 8px;" onclick="startTorrent(${t.id})"><span class="material-icons" style="font-size:16px">play_arrow</span></button>`
+                        : `<button class="btn btn-warning" style="padding:4px 8px; background-color:var(--warning); color:white;" onclick="stopTorrent(${t.id})"><span class="material-icons" style="font-size:16px">pause</span></button>`
+                    }
+                                <button class="btn btn-danger" style="padding:4px 8px;" onclick="removeTorrent(${t.id}, '${t.name.replace(/'/g, "\\'")}')">
+                                    <span class="material-icons" style="font-size:16px">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>`;
+            }).join('')}</tbody>
+            </table>`;
+        }
+
+        async function addTorrent() {
+            const input = document.getElementById('torrent-input');
+            const filename = input.value.trim();
+            if (!filename) return;
+
+            try {
+                const resp = await fetch('/api/transmission/torrents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                if (resp.ok) {
+                    showToast('Torrent added!', 'success');
+                    input.value = '';
+                    loadTorrents();
+                } else {
+                    const err = await resp.text();
+                    showToast('Failed: ' + err, 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function startTorrent(id) {
+            try {
+                const resp = await fetch(`/api/transmission/torrents/${id}/start`, { method: 'POST' });
+                if (resp.ok) {
+                    showToast('Torrent started', 'success');
+                    loadTorrents();
+                }
+            } catch (e) { showToast('Error starting torrent', 'error'); }
+        }
+
+        async function stopTorrent(id) {
+            try {
+                const resp = await fetch(`/api/transmission/torrents/${id}/stop`, { method: 'POST' });
+                if (resp.ok) {
+                    showToast('Torrent stopped', 'success');
+                    loadTorrents();
+                }
+            } catch (e) { showToast('Error stopping torrent', 'error'); }
+        }
+
+        async function removeTorrent(id, name) {
+            const deleteData = confirm(`Delete "${name}" and its downloaded files?\n\nClick OK to delete files too, Cancel to keep files.`);
+            try {
+                const resp = await fetch(`/api/transmission/torrents/${id}?deleteData=${deleteData}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    showToast('Torrent removed!', 'success');
+                    loadTorrents();
+                } else {
+                    showToast('Failed to remove torrent.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        loadTorrents();
+        setInterval(loadTorrents, 5000); // Auto-refresh every 5 seconds
+    </script>
+</body>
+
+</html>

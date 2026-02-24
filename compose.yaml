@@ -1,0 +1,18 @@
+services:
+  media-dashboard:
+    build: .
+    container_name: media-dashboard
+    ports:
+      - "7778:7778"
+    volumes:
+      - ./data:/app/data:Z
+      - ./static:/app/static:Z
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=media_dashboard=debug,tower_http=debug,axum=debug
+    networks:
+      - media-network
+
+networks:
+  media-network:
+    name: media_default # Allows joining existing or creating new

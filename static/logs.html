@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Logs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .tab {
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .log-container {
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 70vh;
+            border: 1px solid var(--border-glass);
+        }
+
+        .log-entry {
+            display: grid;
+            grid-template-columns: 180px 100px 150px 1fr;
+            gap: 16px;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--accent-teal);
+            opacity: 0.8;
+        }
+
+        .log-source {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .log-event {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .log-details {
+            color: var(--text-secondary);
+        }
+
+        .system-log-line {
+            white-space: pre-wrap;
+            margin-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            padding-bottom: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>System Activity</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+        <div class="tabs">
+            <div id="tab-audit" class="tab active" onclick="switchTab('audit')">Audit Logs</div>
+            <div id="tab-system" class="tab" onclick="switchTab('system')">System Logs</div>
+        </div>
+
+        <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+            <div id="audit-view">
+                <div class="log-container" id="audit-log-list">
+                    <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading audit logs...
+                    </div>
+                </div>
+            </div>
+
+            <div id="system-view" style="display: none;">
+                <div class="log-container" id="system-log-content"
+                    style="color: #94a3b8; font-size: 12px; padding: 24px;">
+                    Loading system logs...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'audit';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+
+            if (tab === 'audit') {
+                document.getElementById('audit-view').style.display = 'block';
+                document.getElementById('system-view').style.display = 'none';
+                fetchAuditLogs();
+            } else {
+                document.getElementById('audit-view').style.display = 'none';
+                document.getElementById('system-view').style.display = 'block';
+                fetchSystemLogs();
+            }
+        }
+
+        async function fetchAuditLogs() {
+            try {
+                const resp = await fetch('/api/logs');
+                const logs = await resp.json();
+                const container = document.getElementById('audit-log-list');
+
+                if (logs.length === 0) {
+                    container.innerHTML = '<div style="padding: 40px; text-align: center; opacity: 0.5;">No audit events recorded yet.</div>';
+                    return;
+                }
+
+                container.innerHTML = logs.map(log => `
+                    <div class="log-entry">
+                        <div class="log-time">${new Date(log.timestamp).toLocaleString()}</div>
+                        <div class="log-source">${log.service}</div>
+                        <div class="log-event">${log.event_type}</div>
+                        <div class="log-details">${log.details}</div>
+                    </div>
+                `).join('');
+            } catch (e) { console.error('Error fetching audit logs:', e); }
+        }
+
+        async function fetchSystemLogs() {
+            try {
+                const resp = await fetch('/api/system-logs');
+                const text = await resp.text();
+                const container = document.getElementById('system-log-content');
+
+                const lines = text.trim().split('\n').reverse(); // Newest first
+                container.innerHTML = lines.map(line => `<div class="system-log-line">${line}</div>`).join('');
+            } catch (e) { console.error('Error fetching system logs:', e); }
+        }
+
+        window.onload = () => fetchAuditLogs();
+    </script>
+</body>
+
+</html>

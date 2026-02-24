@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Indexers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .info-banner {
+            background-color: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-banner .material-icons {
+            color: var(--primary-color);
+        }
+
+        .info-banner a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .info-banner a:hover {
+            text-decoration: underline;
+        }
+
+        .badge-configured {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-error {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>Indexers</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+        <div class="info-banner">
+            <span class="material-icons">info</span>
+            <div>
+                Indexers are managed through the Jackett web interface.
+                <a href="#" id="jackett-link" target="_blank">Open Jackett UI →</a>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2
+                style="font-size: 16px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons" style="font-size: 18px;">list</span> Configured Indexers
+            </h2>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn" style="background: var(--surface-light); color: var(--text-primary);"
+                    onclick="loadIndexers()">
+                    <span class="material-icons">refresh</span> Refresh
+                </button>
+                <button class="btn btn-primary" id="add-indexer-btn"
+                    onclick="window.open(document.getElementById('jackett-link').href, '_blank')">
+                    <span class="material-icons">add</span> Add Indexer
+                </button>
+            </div>
+        </div>
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="indexers-list">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading indexers...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function init() {
+            try {
+                const resp = await fetch('/api/config');
+                const config = await resp.json();
+                if (config.jackett_url) {
+                    document.getElementById('jackett-link').href = config.jackett_url;
+                }
+            } catch (e) { }
+            loadIndexers();
+        }
+
+        async function loadIndexers() {
+            try {
+                const resp = await fetch('/api/jackett/indexers');
+                const data = await resp.json();
+                renderIndexers(data);
+            } catch (e) {
+                document.getElementById('indexers-list').innerHTML =
+                    '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load indexers. Check Jackett connection in <a href="/settings.html" style="color: var(--primary-color)">Settings</a>.</div>';
+            }
+        }
+
+        function renderIndexers(data) {
+            const container = document.getElementById('indexers-list');
+            // Only show configured indexers
+            let indexers = Array.isArray(data) ? data.filter(idx => idx.configured !== false) : [];
+
+            if (!indexers.length) {
+                container.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-secondary);">
+                    No configured indexers found. 
+                    <a href="${document.getElementById('jackett-link').href}" target="_blank" style="color: var(--primary-color); font-weight: 600;">Open Jackett UI →</a> to add indexers.
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = `<table>
+                <thead><tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                </tr></thead>
+                <tbody>${indexers.map(idx => {
+                const name = idx.name || idx.title || 'Unknown';
+                const id = idx.id || idx.configured_id || '-';
+                const type = idx.type || idx.language || 'public';
+                const configured = idx.configured !== undefined ? idx.configured : true;
+                return `<tr>
+                        <td><strong>${name}</strong></td>
+                        <td style="color: var(--text-secondary); font-size: 13px;">${id}</td>
+                        <td>${type}</td>
+                        <td><span class="status-badge ${configured ? 'badge-configured' : 'badge-error'}">${configured ? 'Active' : 'Error'}</span></td>
+                    </tr>`;
+            }).join('')}</tbody>
+            </table>`;
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .settings-section {
+            margin-bottom: 40px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.8;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/favicon.svg" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>Settings</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+        </nav>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+        <div class="card" style="max-width: 900px; margin: 0 auto; padding: 40px;">
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">palette</span> Appearance</h3>
+                <div class="row">
+                    <label>Dashboard Theme</label>
+                    <select id="theme_select" onchange="applyTheme(this.value)">
+                        <option value="dark">Glass Dark (Default)</option>
+                        <option value="light">Glass Light</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">tv</span> Sonarr Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="sonarr_url" placeholder="http://localhost:8989">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="sonarr_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">movie</span> Radarr Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="radarr_url" placeholder="http://localhost:7878">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="radarr_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">search</span> Jackett Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="jackett_url" placeholder="http://localhost:9117">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="jackett_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">download</span> Transmission Configuration</h3>
+                <div class="row">
+                    <label>RPC URL</label>
+                    <input type="text" id="transmission_url" placeholder="http://localhost:9091/transmission/rpc">
+                </div>
+                <div class="row">
+                    <label>Username</label>
+                    <input type="text" id="transmission_user" placeholder="Optional">
+                </div>
+                <div class="row">
+                    <label>Password</label>
+                    <input type="password" id="transmission_pass" placeholder="Optional">
+                </div>
+            </div>
+
+            <div class="settings-section" style="border-top: 1px solid var(--border-glass); padding-top: 40px;">
+                <h3><span class="material-icons" style="font-size:18px">play_circle</span> Media Server Configuration
+                </h3>
+                <div class="row">
+                    <label>Plex URL</label>
+                    <input type="text" id="plex_url" placeholder="http://localhost:32400">
+                </div>
+                <div class="row">
+                    <label>Plex Token</label>
+                    <input type="password" id="plex_token" placeholder="Enter Token">
+                </div>
+                <div class="row">
+                    <label>Jellyfin URL</label>
+                    <input type="text" id="jellyfin_url" placeholder="http://localhost:8096">
+                </div>
+                <div class="row">
+                    <label>Jellyfin API Key</label>
+                    <input type="password" id="jellyfin_key" placeholder="Enter API Key">
+                </div>
+                <div class="row">
+                    <label>Emby URL</label>
+                    <input type="text" id="emby_url" placeholder="http://localhost:8096">
+                </div>
+                <div class="row">
+                    <label>Emby API Key</label>
+                    <input type="password" id="emby_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
+            <div
+                style="display: flex; justify-content: flex-end; margin-top: 40px; gap: 12px; border-top: 1px solid var(--border-glass); padding-top: 32px;">
+                <button class="btn btn-primary" onclick="saveConfig()">
+                    <span class="material-icons">save</span> Save All Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadConfig() {
+            // Apply theme on load
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            document.getElementById('theme_select').value = currentTheme;
+            applyTheme(currentTheme);
+
+            try {
+                const resp = await fetch('/api/config');
+                const config = await resp.json();
+
+                document.getElementById('sonarr_url').value = config.sonarr_url || '';
+                document.getElementById('sonarr_key').value = config.sonarr_key || '';
+                document.getElementById('radarr_url').value = config.radarr_url || '';
+                document.getElementById('radarr_key').value = config.radarr_key || '';
+                document.getElementById('jackett_url').value = config.jackett_url || '';
+                document.getElementById('jackett_key').value = config.jackett_key || '';
+                document.getElementById('transmission_url').value = config.transmission_url || '';
+                document.getElementById('transmission_user').value = config.transmission_user || '';
+                document.getElementById('transmission_pass').value = config.transmission_pass || '';
+                document.getElementById('plex_url').value = config.plex_url || '';
+                document.getElementById('plex_token').value = config.plex_token || '';
+                document.getElementById('jellyfin_url').value = config.jellyfin_url || '';
+                document.getElementById('jellyfin_key').value = config.jellyfin_key || '';
+                document.getElementById('emby_url').value = config.emby_url || '';
+                document.getElementById('emby_key').value = config.emby_key || '';
+            } catch (e) { console.error('Error loading config:', e); }
+        }
+
+        async function saveConfig() {
+            const config = {
+                sonarr_url: document.getElementById('sonarr_url').value,
+                sonarr_key: document.getElementById('sonarr_key').value,
+                radarr_url: document.getElementById('radarr_url').value,
+                radarr_key: document.getElementById('radarr_key').value,
+                jackett_url: document.getElementById('jackett_url').value,
+                jackett_key: document.getElementById('jackett_key').value,
+                transmission_url: document.getElementById('transmission_url').value,
+                transmission_user: document.getElementById('transmission_user').value,
+                transmission_pass: document.getElementById('transmission_pass').value,
+                plex_url: document.getElementById('plex_url').value,
+                plex_token: document.getElementById('plex_token').value,
+                jellyfin_url: document.getElementById('jellyfin_url').value,
+                jellyfin_key: document.getElementById('jellyfin_key').value,
+                emby_url: document.getElementById('emby_url').value,
+                emby_key: document.getElementById('emby_key').value
+            };
+
+            try {
+                const resp = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                if (resp.ok) {
+                    alert('Configuration saved successfully!');
+                } else {
+                    alert('Failed to save configuration.');
+                }
+            } catch (e) {
+                console.error('Error saving config:', e);
+                alert('An error occurred while saving.');
+            }
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+            localStorage.setItem('theme', theme);
+        }
+
+        window.onload = loadConfig;
+    </script>
+</body>
+
+</html>

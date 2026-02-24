@@ -1,0 +1,32 @@
+# Rust and Cargo
+/target
+/Cargo.lock
+
+# Web Dist
+/dist
+
+# Environment and Configuration
+/.env
+/.env.*
+config.json
+/data/
+
+# Logs
+*.log
+
+# SQLite Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# OS and IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Explicitly Include
+!README.md
+!LICENSE
