@@ -92,7 +92,10 @@ async fn main() {
     
     tracing::info!("STAGE 4: Loading config");
     let config = load_config_from_db(&db).await;
-    let client = Client::new();
+    let client = Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .build()
+        .unwrap_or_else(|_| Client::new());
     let state = Arc::new(AppState { 
         config: Arc::new(tokio::sync::RwLock::new(config)), 
         client, 
@@ -268,16 +271,37 @@ async fn get_library_stats(
 async fn get_dashboard_config(
     State(state): State<Arc<AppState>>,
 ) -> Json<Config> {
-    let config = state.config.read().await;
-    Json(config.clone())
+    let mut config = state.config.read().await.clone();
+    
+    let mask = "********".to_string();
+    if !config.sonarr_key.is_empty() { config.sonarr_key = mask.clone(); }
+    if !config.radarr_key.is_empty() { config.radarr_key = mask.clone(); }
+    if !config.jackett_key.is_empty() { config.jackett_key = mask.clone(); }
+    if !config.transmission_pass.is_empty() { config.transmission_pass = mask.clone(); }
+    if !config.plex_token.is_empty() { config.plex_token = mask.clone(); }
+    if !config.jellyfin_key.is_empty() { config.jellyfin_key = mask.clone(); }
+    if !config.emby_key.is_empty() { config.emby_key = mask; }
+    
+    Json(config)
 }
 
 async fn update_dashboard_config(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<Config>,
+    Json(mut payload): Json<Config>,
 ) -> axum::http::StatusCode {
+    let mask = "********";
     {
         let mut config = state.config.write().await;
+        
+        // Preserve existing keys if incoming payload has the mask
+        if payload.sonarr_key == mask { payload.sonarr_key = config.sonarr_key.clone(); }
+        if payload.radarr_key == mask { payload.radarr_key = config.radarr_key.clone(); }
+        if payload.jackett_key == mask { payload.jackett_key = config.jackett_key.clone(); }
+        if payload.transmission_pass == mask { payload.transmission_pass = config.transmission_pass.clone(); }
+        if payload.plex_token == mask { payload.plex_token = config.plex_token.clone(); }
+        if payload.jellyfin_key == mask { payload.jellyfin_key = config.jellyfin_key.clone(); }
+        if payload.emby_key == mask { payload.emby_key = config.emby_key.clone(); }
+        
         *config = payload.clone();
     }
     save_config_to_db(&state.db, &payload).await;
