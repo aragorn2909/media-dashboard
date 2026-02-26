@@ -6,20 +6,18 @@ license = "GPL-2.0-only"
 
 [dependencies]
 axum = "0.7"
-tokio = { version = "1.0", features = ["full"] }
+tokio = { version = "1.36", features = ["full"] } # Updated from 1.0 for better stability
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+# Updated to 0.12 to resolve several dependencies-related advisories
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 tower-http = { version = "0.5", features = ["fs", "cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-dotenv = "0.15"
+dotenvy = "0.15" # Note: 'dotenv' is unmaintained; 'dotenvy' is the drop-in secure replacement
 async-trait = "0.1"
-sqlx = { version = "0.7.3", features = ["runtime-tokio", "tls-rustls", "sqlite", "macros"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "sqlite", "macros"] }
 urlencoding = "2.1"
 chrono = { version = "0.4", features = ["serde"] }
 
-[patch.crates-io]
-getrandom = { git = "https://github.com/rust-random/getrandom", rev = "v0.2.15" }
-home = { git = "https://github.com/rust-lang/cargo", tag = "home-0.5.11" }
-base64ct = { git = "https://github.com/RustCrypto/formats", tag = "base64ct/v1.6.0" }
+# REMOVE THE [patch.crates-io] SECTION UNLESS YOU ARE DOING CORE DEVELOPMENT ON THOSE CRATES

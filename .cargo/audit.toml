@@ -1,0 +1,9 @@
+[advisories]
+ignore = [
+    # RUSTSEC-2023-0071: "Marvin Attack: potential key recovery through timing sidechannels" in the `rsa` crate.
+    # This is pulled in via `sqlx-macros` depending on `sqlx-mysql`.
+    # media-dashboard exclusively uses SQLite to connect to local files. 
+    # It does not connect to MySQL networks and does not perform RSA-based TLS handshakes for MySQL.
+    # Therefore, this vulnerability is structurally unexploitable in this application.
+    "RUSTSEC-2023-0071"
+]
