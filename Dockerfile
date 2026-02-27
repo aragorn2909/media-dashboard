@@ -28,23 +28,30 @@ FROM alpine:3.21
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata
+
+# Create a non-root user and group
+RUN addgroup -S dashboard && adduser -S dashboard -G dashboard
+
 # Create data directory for SQLite
-RUN mkdir -p /app/data && chmod 777 /app/data
+RUN mkdir -p /app/data && chown -R dashboard:dashboard /app && chmod 750 /app/data
 
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /usr/src/app/target/release/media-dashboard /app/
+COPY --from=builder --chown=dashboard:dashboard /usr/src/app/target/release/media-dashboard /app/
 RUN chmod +x /app/media-dashboard
 
 # Copy static assets
-COPY static /app/static
+COPY --chown=dashboard:dashboard static /app/static
 
 # Note: config.json is no longer required in the image as settings are now database-driven.
 # Migration happens automatically on first startup if config.json is present in the container's /app/ root.
 
+# Switch to the non-root user
+USER dashboard
+
 # List files for verification
-RUN ls -R /app
+RUN ls -la /app
 
 # Expose port
 EXPOSE 7778

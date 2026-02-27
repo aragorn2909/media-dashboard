@@ -75,6 +75,21 @@
             </div>
 
             <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">security</span> Dashboard Security</h3>
+                <div class="row">
+                    <label>Dashboard Username</label>
+                    <input type="text" id="dashboard_user" placeholder="Leave blank to disable auth">
+                </div>
+                <div class="row">
+                    <label>Dashboard Password</label>
+                    <input type="password" id="dashboard_pass" placeholder="Leave blank to disable auth">
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: -10px; margin-bottom: 20px;">
+                    <em>Note: If you set these, you will be required to log in on your next visit.</em>
+                </p>
+            </div>
+
+            <div class="settings-section">
                 <h3><span class="material-icons" style="font-size:18px">tv</span> Sonarr Configuration</h3>
                 <div class="row">
                     <label>API URL</label>
@@ -175,6 +190,8 @@
                 const resp = await fetch('/api/config');
                 const config = await resp.json();
 
+                document.getElementById('dashboard_user').value = config.dashboard_user || '';
+                document.getElementById('dashboard_pass').value = config.dashboard_pass || '';
                 document.getElementById('sonarr_url').value = config.sonarr_url || '';
                 document.getElementById('sonarr_key').value = config.sonarr_key || '';
                 document.getElementById('radarr_url').value = config.radarr_url || '';
@@ -195,6 +212,8 @@
 
         async function saveConfig() {
             const config = {
+                dashboard_user: document.getElementById('dashboard_user').value,
+                dashboard_pass: document.getElementById('dashboard_pass').value,
                 sonarr_url: document.getElementById('sonarr_url').value,
                 sonarr_key: document.getElementById('sonarr_key').value,
                 radarr_url: document.getElementById('radarr_url').value,

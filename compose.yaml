@@ -9,7 +9,7 @@ services:
       - ./static:/app/static:Z
     restart: unless-stopped
     environment:
-      - RUST_LOG=media_dashboard=debug,tower_http=debug,axum=debug
+      - RUST_LOG=media_dashboard=info,tower_http=info,axum=info
     networks:
       - media-network
 

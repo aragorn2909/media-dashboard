@@ -1,7 +1,10 @@
 use axum::{
     routing::{get, post, delete},
     Json, Router,
-    extract::{State, Path, Query},
+    extract::{State, Path, Query, Request},
+    middleware::Next,
+    response::{Response, IntoResponse},
+    http::{header, StatusCode},
 };
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -18,6 +21,10 @@ use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 struct Config {
+    #[serde(default)]
+    dashboard_user: String,
+    #[serde(default)]
+    dashboard_pass: String,
     sonarr_url: String,
     sonarr_key: String,
     radarr_url: String,
@@ -66,6 +73,58 @@ fn internal_err(e: impl std::fmt::Display) -> AppError {
     (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }
 
+fn encode_basic_auth(user: &str, pass: &str) -> String {
+    let b64_chars: Vec<char> = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".chars().collect();
+    let input = format!("{}:{}", user, pass);
+    let bytes = input.as_bytes();
+    let mut output = String::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        let b0 = bytes[i];
+        let b1 = if i + 1 < bytes.len() { bytes[i + 1] } else { 0 };
+        let b2 = if i + 2 < bytes.len() { bytes[i + 2] } else { 0 };
+        
+        let out0 = b0 >> 2;
+        let out1 = ((b0 & 0x03) << 4) | (b1 >> 4);
+        let out2 = ((b1 & 0x0F) << 2) | (b2 >> 6);
+        let out3 = b2 & 0x3F;
+        
+        output.push(b64_chars[out0 as usize]);
+        output.push(b64_chars[out1 as usize]);
+        if i + 1 < bytes.len() { output.push(b64_chars[out2 as usize]); } else { output.push('='); }
+        if i + 2 < bytes.len() { output.push(b64_chars[out3 as usize]); } else { output.push('='); }
+        i += 3;
+    }
+    format!("Basic {}", output)
+}
+
+async fn auth_middleware(
+    State(state): State<Arc<AppState>>,
+    req: Request,
+    next: Next,
+) -> Response {
+    let config = state.config.read().await;
+    let expected_user = &config.dashboard_user;
+    let expected_pass = &config.dashboard_pass;
+    
+    if expected_user.is_empty() && expected_pass.is_empty() {
+        return next.run(req).await;
+    }
+    
+    let expected_auth = encode_basic_auth(expected_user, expected_pass);
+    
+    if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
+        if let Ok(auth_str) = auth_header.to_str() {
+            if auth_str == expected_auth {
+                return next.run(req).await;
+            }
+        }
+    }
+    
+    let headers = [(header::WWW_AUTHENTICATE, "Basic realm=\"media-dashboard\"")];
+    (StatusCode::UNAUTHORIZED, headers, "Unauthorized").into_response()
+}
+
 #[tokio::main]
 async fn main() {
     std::panic::set_hook(Box::new(|info| {
@@ -76,7 +135,7 @@ async fn main() {
     
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "media_dashboard=debug,tower_http=debug,axum=debug".into()),
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "media_dashboard=info,tower_http=info,axum=info".into()),
         ))
         .with(tracing_subscriber::fmt::layer())
         .with(tracing_subscriber::fmt::layer().with_writer(std::fs::File::create("data/app.log").expect("Failed to create log file")))
@@ -138,6 +197,7 @@ async fn main() {
         .route("/api/transmission/torrents/:id/stop", post(transmission_stop_torrent))
         // Static files
         .fallback_service(ServeDir::new("static"))
+        .layer(axum::middleware::from_fn_with_state(state.clone(), auth_middleware))
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 7778));
@@ -274,6 +334,7 @@ async fn get_dashboard_config(
     let mut config = state.config.read().await.clone();
     
     let mask = "********".to_string();
+    if !config.dashboard_pass.is_empty() { config.dashboard_pass = mask.clone(); }
     if !config.sonarr_key.is_empty() { config.sonarr_key = mask.clone(); }
     if !config.radarr_key.is_empty() { config.radarr_key = mask.clone(); }
     if !config.jackett_key.is_empty() { config.jackett_key = mask.clone(); }
@@ -289,11 +350,17 @@ async fn update_dashboard_config(
     State(state): State<Arc<AppState>>,
     Json(mut payload): Json<Config>,
 ) -> axum::http::StatusCode {
+    let is_safe = |u: &str| !u.contains("169.254.");
+    if !is_safe(&payload.sonarr_url) || !is_safe(&payload.radarr_url) || !is_safe(&payload.jackett_url) || !is_safe(&payload.transmission_url) || !is_safe(&payload.plex_url) || !is_safe(&payload.jellyfin_url) || !is_safe(&payload.emby_url) {
+        return axum::http::StatusCode::BAD_REQUEST;
+    }
+
     let mask = "********";
     {
         let mut config = state.config.write().await;
         
         // Preserve existing keys if incoming payload has the mask
+        if payload.dashboard_pass == mask { payload.dashboard_pass = config.dashboard_pass.clone(); }
         if payload.sonarr_key == mask { payload.sonarr_key = config.sonarr_key.clone(); }
         if payload.radarr_key == mask { payload.radarr_key = config.radarr_key.clone(); }
         if payload.jackett_key == mask { payload.jackett_key = config.jackett_key.clone(); }
@@ -578,6 +645,8 @@ async fn migrate_config_if_needed(pool: &SqlitePool) {
 
 async fn load_config_from_db(pool: &SqlitePool) -> Config {
     Config {
+        dashboard_user: db::get_setting(pool, "dashboard_user").await.unwrap_or_default(),
+        dashboard_pass: db::get_setting(pool, "dashboard_pass").await.unwrap_or_default(),
         sonarr_url: db::get_setting(pool, "sonarr_url").await.unwrap_or_default(),
         sonarr_key: db::get_setting(pool, "sonarr_key").await.unwrap_or_default(),
         radarr_url: db::get_setting(pool, "radarr_url").await.unwrap_or_default(),
@@ -597,6 +666,8 @@ async fn load_config_from_db(pool: &SqlitePool) -> Config {
 }
 
 async fn save_config_to_db(pool: &SqlitePool, config: &Config) {
+    db::set_setting(pool, "dashboard_user", &config.dashboard_user).await;
+    db::set_setting(pool, "dashboard_pass", &config.dashboard_pass).await;
     db::set_setting(pool, "sonarr_url", &config.sonarr_url).await;
     db::set_setting(pool, "sonarr_key", &config.sonarr_key).await;
     db::set_setting(pool, "radarr_url", &config.radarr_url).await;
