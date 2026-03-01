@@ -122,7 +122,7 @@ async fn auth_middleware(
         }
     }
     
-    if path == "/api/needs-setup" {
+    if path == "/api/needs-setup" || path == "/api/setup" {
         return next.run(req).await;
     }
     
