@@ -27,7 +27,7 @@ RUN ldd target/release/media-dashboard 2>&1 || true
 FROM alpine:3.21
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata su-exec
+RUN apk add --no-cache ca-certificates tzdata su-exec shadow
 
 # Create a non-root user and group
 RUN addgroup -S dashboard && adduser -S dashboard -G dashboard
