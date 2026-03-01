@@ -27,7 +27,7 @@ RUN ldd target/release/media-dashboard 2>&1 || true
 FROM alpine:3.21
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata su-exec
 
 # Create a non-root user and group
 RUN addgroup -S dashboard && adduser -S dashboard -G dashboard
@@ -38,22 +38,24 @@ RUN mkdir -p /app/data && chown -R dashboard:dashboard /app && chmod 750 /app/da
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder --chown=dashboard:dashboard /usr/src/app/target/release/media-dashboard /app/
-RUN chmod +x /app/media-dashboard
+COPY --from=builder /usr/src/app/target/release/media-dashboard /app/
+RUN chown dashboard:dashboard /app/media-dashboard && chmod +x /app/media-dashboard
 
 # Copy static assets
-COPY --chown=dashboard:dashboard static /app/static
+COPY static /app/static
+RUN chown -R dashboard:dashboard /app/static
+
+# Copy entrypoint script
+COPY entrypoint.sh /app/
+RUN chmod +x /app/entrypoint.sh
 
 # Note: config.json is no longer required in the image as settings are now database-driven.
-# Migration happens automatically on first startup if config.json is present in the container's /app/ root.
 
-# Switch to the non-root user
-USER dashboard
-
-# List files for verification
-RUN ls -la /app
+# We do NOT use the "USER" directive here because the entrypoint script needs to run as root
+# to fix the mounted volume permissions before dropping privileges via su-exec.
 
 # Expose port
 EXPOSE 7778
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["./media-dashboard"]
