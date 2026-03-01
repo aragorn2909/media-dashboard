@@ -118,9 +118,10 @@ async fn auth_middleware(
     req: Request,
     next: Next,
 ) -> Response {
-    let config = state.config.read().await;
-    let expected_user = &config.dashboard_user;
-    let expected_pass = &config.dashboard_pass;
+    let (expected_user, expected_pass) = {
+        let config = state.config.read().await;
+        (config.dashboard_user.clone(), config.dashboard_pass.clone())
+    };
     
     let path = req.uri().path().to_string();
     let needs_setup = expected_user.is_empty() || expected_pass.is_empty();
@@ -141,7 +142,7 @@ async fn auth_middleware(
         return next.run(req).await;
     }
     
-    let expected_auth = encode_basic_auth(expected_user, expected_pass);
+    let expected_auth = encode_basic_auth(&expected_user, &expected_pass);
     
     if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth_header.to_str() {
