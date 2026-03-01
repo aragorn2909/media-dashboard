@@ -133,13 +133,30 @@ async fn main() {
 
     eprintln!("STAGE 0: Starting Media Dashboard...");
     
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "media_dashboard=info,tower_http=info,axum=info".into()),
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .with(tracing_subscriber::fmt::layer().with_writer(std::fs::File::create("data/app.log").expect("Failed to create log file")))
-        .init();
+    // Ensure the data directory exists before attempting to create the log file
+    let _ = std::fs::create_dir_all("data");
+
+    // Attempt to open the log file. If it fails (e.g. Docker volume permission issues), gracefully fallback to STDOUT only.
+    match std::fs::File::create("data/app.log") {
+        Ok(log_file) => {
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(
+                    std::env::var("RUST_LOG").unwrap_or_else(|_| "media_dashboard=info,tower_http=info,axum=info".into()),
+                ))
+                .with(tracing_subscriber::fmt::layer())
+                .with(tracing_subscriber::fmt::layer().with_writer(log_file))
+                .init();
+        },
+        Err(e) => {
+            tracing_subscriber::registry()
+                .with(tracing_subscriber::EnvFilter::new(
+                    std::env::var("RUST_LOG").unwrap_or_else(|_| "media_dashboard=info,tower_http=info,axum=info".into()),
+                ))
+                .with(tracing_subscriber::fmt::layer())
+                .init();
+            tracing::warn!("Failed to create data/app.log file: {}. Continuing with console-only logging. Ensure the volume permissions allow writing by the 'dashboard' user.", e);
+        }
+    }
 
     tracing::info!("STAGE 1: Logger initialized (Console + File)");
 
