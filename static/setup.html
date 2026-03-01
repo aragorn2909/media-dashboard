@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Setup</title>
+    <link href="/fonts/inter.css" rel="stylesheet">
+    <link href="/fonts/icons.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .setup-container {
+            max-width: 600px;
+            margin: 60px auto;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .step-card {
+            display: none;
+            padding: 40px;
+        }
+
+        .step-card.active {
+            display: block;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .light-mode .step-dot {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .step-dot.active {
+            background: var(--primary-color);
+            box-shadow: 0 0 10px rgba(10, 132, 255, 0.5);
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .setup-header img {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .setup-header h2 {
+            font-size: 24px;
+            margin: 0;
+            margin-bottom: 8px;
+        }
+
+        .setup-header p {
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .input-group input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .setup-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .setup-actions.single {
+            justify-content: flex-end;
+        }
+
+        .btn-skip {
+            background: transparent;
+            color: var(--text-secondary);
+            box-shadow: none;
+        }
+
+        .btn-skip:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .light-mode .btn-skip:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="setup-container">
+        <div class="card step-card active" id="step1">
+            <div class="step-indicator">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            <div class="setup-header">
+                <img src="/favicon.svg" alt="Logo">
+                <h2>Welcome to Media Dashboard</h2>
+                <p>Let's secure your installation. Create an admin account.</p>
+            </div>
+
+            <div class="input-group">
+                <label>Admin Username</label>
+                <input type="text" id="setup_user" placeholder="admin" required>
+            </div>
+            <div class="input-group">
+                <label>Admin Password</label>
+                <input type="password" id="setup_pass" placeholder="Required" required>
+            </div>
+            <p style="font-size: 12px; color: var(--danger-color); display: none;" id="auth-error">Username and Password
+                are mandatory.</p>
+
+            <div class="setup-actions single">
+                <button class="btn btn-primary" onclick="nextStep(1)">
+                    Continue <span class="material-icons" style="font-size: 18px;">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card step-card" id="step2">
+            <div class="step-indicator">
+                <div class="step-dot"></div>
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            <div class="setup-header">
+                <h2>Sonarr & Radarr (Optional)</h2>
+                <p>Connect your media management tools. You can also do this later in Settings.</p>
+            </div>
+
+            <div class="input-group">
+                <label>Sonarr URL</label>
+                <input type="text" id="sonarr_url" placeholder="http://192.168.1.100:8989">
+            </div>
+            <div class="input-group">
+                <label>Sonarr API Key</label>
+                <input type="password" id="sonarr_key" placeholder="Enter API Key">
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-glass); margin: 24px 0;">
+            <div class="input-group">
+                <label>Radarr URL</label>
+                <input type="text" id="radarr_url" placeholder="http://192.168.1.100:7878">
+            </div>
+            <div class="input-group">
+                <label>Radarr API Key</label>
+                <input type="password" id="radarr_key" placeholder="Enter API Key">
+            </div>
+
+            <div class="setup-actions">
+                <button class="btn btn-skip" onclick="nextStep(2)">Skip</button>
+                <button class="btn btn-primary" onclick="nextStep(2)">
+                    Continue <span class="material-icons" style="font-size: 18px;">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card step-card" id="step3">
+            <div class="step-indicator">
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+            </div>
+            <div class="setup-header">
+                <h2>Media Servers (Optional)</h2>
+                <p>Connect to Plex, Jellyfin, or Emby to view library statistics.</p>
+            </div>
+
+            <div class="input-group">
+                <label>Plex URL</label>
+                <input type="text" id="plex_url" placeholder="http://192.168.1.100:32400">
+            </div>
+            <div class="input-group">
+                <label>Plex Token</label>
+                <input type="password" id="plex_token" placeholder="Enter Token">
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-glass); margin: 24px 0;">
+            <div class="input-group">
+                <label>Jellyfin URL</label>
+                <input type="text" id="jellyfin_url">
+            </div>
+            <div class="input-group">
+                <label>Jellyfin API Key</label>
+                <input type="password" id="jellyfin_key">
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-glass); margin: 24px 0;">
+            <div class="input-group">
+                <label>Emby URL</label>
+                <input type="text" id="emby_url">
+            </div>
+            <div class="input-group">
+                <label>Emby API Key</label>
+                <input type="password" id="emby_key">
+            </div>
+
+            <div class="setup-actions">
+                <button class="btn btn-skip" onclick="nextStep(3)">Skip</button>
+                <button class="btn btn-primary" onclick="nextStep(3)">
+                    Continue <span class="material-icons" style="font-size: 18px;">arrow_forward</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card step-card" id="step4">
+            <div class="step-indicator">
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot active"></div>
+            </div>
+            <div class="setup-header">
+                <h2>Download Clients (Optional)</h2>
+                <p>Configure Transmission and Jackett to manage downloads directly.</p>
+            </div>
+
+            <div class="input-group">
+                <label>Transmission RPC URL</label>
+                <input type="text" id="transmission_url" placeholder="http://192.168.1.100:9091/transmission/rpc">
+            </div>
+            <div class="input-group">
+                <label>Transmission Username</label>
+                <input type="text" id="transmission_user">
+            </div>
+            <div class="input-group">
+                <label>Transmission Password</label>
+                <input type="password" id="transmission_pass">
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-glass); margin: 24px 0;">
+            <div class="input-group">
+                <label>Jackett URL</label>
+                <input type="text" id="jackett_url">
+            </div>
+            <div class="input-group">
+                <label>Jackett API Key</label>
+                <input type="password" id="jackett_key">
+            </div>
+
+            <div class="setup-actions">
+                <button class="btn btn-skip" onclick="finishSetup()">Skip & Finish</button>
+                <button class="btn btn-primary" onclick="finishSetup()">
+                    <span class="material-icons" style="font-size: 18px;">check_circle</span> Finish Setup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function nextStep(currentStep) {
+            if (currentStep === 1) {
+                const user = document.getElementById('setup_user').value.trim();
+                const pass = document.getElementById('setup_pass').value.trim();
+                if (!user || !pass) {
+                    document.getElementById('auth-error').style.display = 'block';
+                    return;
+                }
+                document.getElementById('auth-error').style.display = 'none';
+            }
+
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep + 1}`).classList.add('active');
+        }
+
+        async function finishSetup() {
+            const config = {
+                dashboard_user: document.getElementById('setup_user').value.trim(),
+                dashboard_pass: document.getElementById('setup_pass').value.trim(),
+                sonarr_url: document.getElementById('sonarr_url').value.trim(),
+                sonarr_key: document.getElementById('sonarr_key').value.trim(),
+                radarr_url: document.getElementById('radarr_url').value.trim(),
+                radarr_key: document.getElementById('radarr_key').value.trim(),
+                jackett_url: document.getElementById('jackett_url').value.trim(),
+                jackett_key: document.getElementById('jackett_key').value.trim(),
+                transmission_url: document.getElementById('transmission_url').value.trim(),
+                transmission_user: document.getElementById('transmission_user').value.trim(),
+                transmission_pass: document.getElementById('transmission_pass').value.trim(),
+                plex_url: document.getElementById('plex_url').value.trim(),
+                plex_token: document.getElementById('plex_token').value.trim(),
+                jellyfin_url: document.getElementById('jellyfin_url').value.trim(),
+                jellyfin_key: document.getElementById('jellyfin_key').value.trim(),
+                emby_url: document.getElementById('emby_url').value.trim(),
+                emby_key: document.getElementById('emby_key').value.trim()
+            };
+
+            try {
+                const resp = await fetch('/api/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (resp.ok) {
+                    // Redirect to dashboard, which will prompt for the new Basic Auth
+                    window.location.href = '/';
+                } else {
+                    alert('Failed to complete setup. Please check the logs.');
+                }
+            } catch (e) {
+                console.error('Setup error:', e);
+                alert('An error occurred while saving setup data.');
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -107,7 +107,22 @@ async fn auth_middleware(
     let expected_user = &config.dashboard_user;
     let expected_pass = &config.dashboard_pass;
     
-    if expected_user.is_empty() && expected_pass.is_empty() {
+    let path = req.uri().path().to_string();
+    let needs_setup = expected_user.is_empty() || expected_pass.is_empty();
+    let is_setup_asset = path == "/setup.html" || path.starts_with("/style.css") || path.starts_with("/fonts/") || path == "/favicon.svg" || path == "/api/setup" || path == "/api/needs-setup";
+
+    if needs_setup {
+        if is_setup_asset {
+            return next.run(req).await;
+        } else if path.starts_with("/api/") {
+            return (StatusCode::FORBIDDEN, "Setup Required").into_response();
+        } else {
+            let headers = [(header::LOCATION, "/setup.html")];
+            return (StatusCode::TEMPORARY_REDIRECT, headers, "").into_response();
+        }
+    }
+    
+    if path == "/api/needs-setup" {
         return next.run(req).await;
     }
     
@@ -116,6 +131,10 @@ async fn auth_middleware(
     if let Some(auth_header) = req.headers().get(header::AUTHORIZATION) {
         if let Ok(auth_str) = auth_header.to_str() {
             if auth_str == expected_auth {
+                if path == "/setup.html" {
+                    let headers = [(header::LOCATION, "/")];
+                    return (StatusCode::TEMPORARY_REDIRECT, headers, "").into_response();
+                }
                 return next.run(req).await;
             }
         }
@@ -181,6 +200,8 @@ async fn main() {
     tracing::info!("STAGE 5: Setting up router");
     let app = Router::new()
         // Dashboard status
+        .route("/api/needs-setup", get(needs_setup_handler))
+        .route("/api/setup", post(setup_handler))
         .route("/api/status", get(get_all_status))
         .route("/api/search", get(global_search))
         .route("/api/calendar", get(get_calendar_data))
@@ -224,6 +245,33 @@ async fn main() {
 }
 
 // ===================== Dashboard Handlers =====================
+
+async fn needs_setup_handler(
+    State(state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
+    let config = state.config.read().await;
+    let needs = config.dashboard_user.is_empty() || config.dashboard_pass.is_empty();
+    Json(serde_json::json!({ "needs_setup": needs }))
+}
+
+async fn setup_handler(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Config>,
+) -> axum::http::StatusCode {
+    {
+        let mut config = state.config.write().await;
+        if !config.dashboard_user.is_empty() && !config.dashboard_pass.is_empty() {
+            return axum::http::StatusCode::FORBIDDEN;
+        }
+        if payload.dashboard_user.is_empty() || payload.dashboard_pass.is_empty() {
+            return axum::http::StatusCode::BAD_REQUEST;
+        }
+        *config = payload.clone();
+    }
+    save_config_to_db(&state.db, &payload).await;
+    db::log_event(&state.db, "System", "Setup", "Initial mandatory setup completed").await;
+    axum::http::StatusCode::OK
+}
 
 async fn get_all_status(
     State(state): State<Arc<AppState>>,
