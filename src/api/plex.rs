@@ -59,15 +59,33 @@ struct PlexPlayer {
     pub state: String,
 }
 
-pub async fn get_status(client: &Client, url: &str, token: &str) -> ServiceStatus {
-    let base = url.trim().trim_end_matches('/');
-    let token = token.trim();
-    let endpoint = format!("{}/status/sessions", base);
-    match client.get(&endpoint)
+fn clean_plex_url(url: &str) -> String {
+    let mut base = url.trim().trim_end_matches('/').to_string();
+    // Remove common suffixes that users might paste
+    let suffixes = ["/web", "/index.html", "/manage", "/desktop"];
+    for suffix in suffixes {
+        if base.ends_with(suffix) {
+            base = base[..base.len() - suffix.len()].trim_end_matches('/').to_string();
+        }
+    }
+    base
+}
+
+async fn plex_get(client: &Client, url: &str, token: &str) -> reqwest::RequestBuilder {
+    client.get(url)
         .header("Accept", "application/json")
+        .header("X-Plex-Token", token.trim())
         .header("X-Plex-Client-Identifier", "media-dashboard")
-        .header("X-Plex-Token", token)
-        .send().await {
+        .header("X-Plex-Product", "Media Dashboard")
+        .header("X-Plex-Version", "1.0.0")
+        .header("X-Plex-Device", "Web")
+        .header("X-Plex-Platform", "Generic")
+}
+
+pub async fn get_status(client: &Client, url: &str, token: &str) -> ServiceStatus {
+    let base = clean_plex_url(url);
+    let endpoint = format!("{}/status/sessions", base);
+    match plex_get(client, &endpoint, token).send().await {
         Ok(resp) => {
             if resp.status().is_success() {
                 match resp.json::<MediaContainerWrapper>().await {
@@ -144,14 +162,9 @@ pub async fn get_server_info(
     url: &str,
     token: &str,
 ) -> Result<serde_json::Value, String> {
-    let base = url.trim().trim_end_matches('/');
-    let token = token.trim();
+    let base = clean_plex_url(url);
     let endpoint = format!("{}/", base);
-    let resp = client
-        .get(&endpoint)
-        .header("Accept", "application/json")
-        .header("X-Plex-Client-Identifier", "media-dashboard")
-        .header("X-Plex-Token", token)
+    let resp = plex_get(client, &endpoint, token)
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -181,14 +194,9 @@ pub async fn get_libraries(
     url: &str,
     token: &str,
 ) -> Result<Vec<PlexLibrary>, String> {
-    let base = url.trim().trim_end_matches('/');
-    let token = token.trim();
+    let base = clean_plex_url(url);
     let endpoint = format!("{}/library/sections", base);
-    let resp = client
-        .get(&endpoint)
-        .header("Accept", "application/json")
-        .header("X-Plex-Client-Identifier", "media-dashboard")
-        .header("X-Plex-Token", token)
+    let resp = plex_get(client, &endpoint, token)
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -220,11 +228,7 @@ pub async fn get_libraries(
             "{}/library/sections/{}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=0",
             base, lib.key
         );
-        if let Ok(r) = client.get(&count_url)
-            .header("Accept", "application/json")
-            .header("X-Plex-Client-Identifier", "media-dashboard")
-            .header("X-Plex-Token", token)
-            .send().await {
+        if let Ok(r) = plex_get(client, &count_url, token).send().await {
             if let Ok(j) = r.json::<Value>().await {
                 lib.count = j.pointer("/MediaContainer/totalSize")
                     .and_then(|v| v.as_i64())
@@ -244,17 +248,12 @@ pub async fn get_recently_added(
     token: &str,
     limit: usize,
 ) -> Result<Vec<PlexRecentItem>, String> {
-    let base = url.trim().trim_end_matches('/');
-    let token = token.trim();
+    let base = clean_plex_url(url);
     let endpoint = format!(
         "{}/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size={}",
         base, limit
     );
-    let resp = client
-        .get(&endpoint)
-        .header("Accept", "application/json")
-        .header("X-Plex-Client-Identifier", "media-dashboard")
-        .header("X-Plex-Token", token)
+    let resp = plex_get(client, &endpoint, token)
         .send()
         .await
         .map_err(|e| e.to_string())?;
