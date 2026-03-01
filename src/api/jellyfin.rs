@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use reqwest::Client;
 use crate::api::ServiceStatus;
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JellyfinConfig {
     pub url: String,
@@ -11,6 +12,7 @@ pub struct JellyfinConfig {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 struct JellyfinSession {
+    #[allow(dead_code)]
     pub id: String,
     pub user_name: Option<String>,
     pub now_playing_item: Option<NowPlayingItem>,

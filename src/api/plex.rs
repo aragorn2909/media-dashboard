@@ -21,6 +21,7 @@ pub struct PlexRecentItem {
     pub added_at: Option<i64>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlexConfig {
     pub url: String,
@@ -43,6 +44,7 @@ struct PlexSession {
     #[serde(rename = "User")]
     pub user: Option<PlexUser>,
     #[serde(rename = "Player")]
+    #[allow(dead_code)]
     pub player: Option<PlexPlayer>,
 }
 
@@ -53,6 +55,7 @@ struct PlexUser {
 
 #[derive(Debug, Deserialize)]
 struct PlexPlayer {
+    #[allow(dead_code)]
     pub state: String,
 }
 

@@ -7,6 +7,7 @@ struct RpcRequest {
     method: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct RpcResponse {
     result: String,
@@ -22,6 +23,7 @@ struct TorrentInfo {
     #[serde(default)]
     percent_done: f64,
     #[serde(default)]
+    #[allow(dead_code)]
     rate_download: i64,
 }
 
