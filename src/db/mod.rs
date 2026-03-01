@@ -92,6 +92,7 @@ pub async fn log_event(pool: &SqlitePool, service: &str, action: &str, details: 
         .await;
 }
 
+#[allow(dead_code)]
 pub async fn log_login(pool: &SqlitePool, username: &str, ip_address: &str, success: bool) {
     let _ = sqlx::query("INSERT INTO login_events (username, ip_address, success) VALUES (?, ?, ?)")
         .bind(username)
