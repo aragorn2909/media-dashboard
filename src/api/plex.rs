@@ -61,8 +61,8 @@ struct PlexPlayer {
 
 pub async fn get_status(client: &Client, url: &str, token: &str) -> ServiceStatus {
     let base = url.trim_end_matches('/');
-    let endpoint = format!("{}/status/sessions", base);
-    match client.get(&endpoint).header("Accept", "application/json").header("X-Plex-Token", token).send().await {
+    let endpoint = format!("{}/status/sessions?X-Plex-Token={}", base, token);
+    match client.get(&endpoint).header("Accept", "application/json").header("X-Plex-Client-Identifier", "media-dashboard").send().await {
         Ok(resp) => {
             if resp.status().is_success() {
                 match resp.json::<MediaContainerWrapper>().await {
@@ -140,11 +140,11 @@ pub async fn get_server_info(
     token: &str,
 ) -> Result<serde_json::Value, String> {
     let base = url.trim_end_matches('/');
-    let endpoint = format!("{}/", base);
+    let endpoint = format!("{}/?X-Plex-Token={}", base, token);
     let resp = client
         .get(&endpoint)
         .header("Accept", "application/json")
-        .header("X-Plex-Token", token)
+        .header("X-Plex-Client-Identifier", "media-dashboard")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -175,11 +175,11 @@ pub async fn get_libraries(
     token: &str,
 ) -> Result<Vec<PlexLibrary>, String> {
     let base = url.trim_end_matches('/');
-    let endpoint = format!("{}/library/sections", base);
+    let endpoint = format!("{}/library/sections?X-Plex-Token={}", base, token);
     let resp = client
         .get(&endpoint)
         .header("Accept", "application/json")
-        .header("X-Plex-Token", token)
+        .header("X-Plex-Client-Identifier", "media-dashboard")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -208,10 +208,10 @@ pub async fn get_libraries(
     // Fetch item count for each library (sections endpoint doesn't include it)
     for lib in &mut libraries {
         let count_url = format!(
-            "{}/library/sections/{}/all?X-Plex-Container-Start=0&X-Plex-Container-Size=0",
-            base, lib.key
+            "{}/library/sections/{}/all?X-Plex-Token={}&X-Plex-Container-Start=0&X-Plex-Container-Size=0",
+            base, lib.key, token
         );
-        if let Ok(r) = client.get(&count_url).header("Accept", "application/json").header("X-Plex-Token", token).send().await {
+        if let Ok(r) = client.get(&count_url).header("Accept", "application/json").header("X-Plex-Client-Identifier", "media-dashboard").send().await {
             if let Ok(j) = r.json::<Value>().await {
                 lib.count = j.pointer("/MediaContainer/totalSize")
                     .and_then(|v| v.as_i64())
@@ -233,13 +233,13 @@ pub async fn get_recently_added(
 ) -> Result<Vec<PlexRecentItem>, String> {
     let base = url.trim_end_matches('/');
     let endpoint = format!(
-        "{}/library/recentlyAdded?X-Plex-Container-Start=0&X-Plex-Container-Size={}",
-        base, limit
+        "{}/library/recentlyAdded?X-Plex-Token={}&X-Plex-Container-Start=0&X-Plex-Container-Size={}",
+        base, token, limit
     );
     let resp = client
         .get(&endpoint)
         .header("Accept", "application/json")
-        .header("X-Plex-Token", token)
+        .header("X-Plex-Client-Identifier", "media-dashboard")
         .send()
         .await
         .map_err(|e| e.to_string())?;
