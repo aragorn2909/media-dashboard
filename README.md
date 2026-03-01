@@ -77,11 +77,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🛡️ Security & Disclaimer
 
-**This project was primarily "vibe-coded" using AI assistance.** As an author actively learning about software development and security practices, I cannot guarantee the absolute safety or stability of this code. 
-
 **Please use this software at your own risk.**
-
-**Security Feedback:** I welcome and greatly appreciate any security audits, feedback, or vulnerability disclosures from the community. If you find a flaw, please open an issue or submit a PR so I can learn and improve the project!
 
 ## 📜 License
 
