@@ -25,20 +25,35 @@ struct Config {
     dashboard_user: String,
     #[serde(default)]
     dashboard_pass: String,
+    #[serde(default)]
     sonarr_url: String,
+    #[serde(default)]
     sonarr_key: String,
+    #[serde(default)]
     radarr_url: String,
+    #[serde(default)]
     radarr_key: String,
+    #[serde(default)]
     jackett_url: String,
+    #[serde(default)]
     jackett_key: String,
+    #[serde(default)]
     transmission_url: String,
+    #[serde(default)]
     transmission_user: String,
+    #[serde(default)]
     transmission_pass: String,
+    #[serde(default)]
     plex_url: String,
+    #[serde(default)]
     plex_token: String,
+    #[serde(default)]
     jellyfin_url: String,
+    #[serde(default)]
     jellyfin_key: String,
+    #[serde(default)]
     emby_url: String,
+    #[serde(default)]
     emby_key: String,
 }
 
@@ -256,47 +271,20 @@ async fn needs_setup_handler(
 
 async fn setup_handler(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<serde_json::Value>,
+    Json(payload): Json<Config>,
 ) -> axum::http::StatusCode {
-    let mut new_config = Config::default();
-    
-    // Parse the mandatory auth fields
-    let user = payload.get("dashboard_user").and_then(|v| v.as_str()).unwrap_or("");
-    let pass = payload.get("dashboard_pass").and_then(|v| v.as_str()).unwrap_or("");
-    
-    if user.is_empty() || pass.is_empty() {
-        return axum::http::StatusCode::BAD_REQUEST;
-    }
-    
-    new_config.dashboard_user = user.to_string();
-    new_config.dashboard_pass = pass.to_string();
-    
-    // Parse optional fields
-    if let Some(v) = payload.get("sonarr_url").and_then(|v| v.as_str()) { new_config.sonarr_url = v.to_string(); }
-    if let Some(v) = payload.get("sonarr_key").and_then(|v| v.as_str()) { new_config.sonarr_key = v.to_string(); }
-    if let Some(v) = payload.get("radarr_url").and_then(|v| v.as_str()) { new_config.radarr_url = v.to_string(); }
-    if let Some(v) = payload.get("radarr_key").and_then(|v| v.as_str()) { new_config.radarr_key = v.to_string(); }
-    if let Some(v) = payload.get("jackett_url").and_then(|v| v.as_str()) { new_config.jackett_url = v.to_string(); }
-    if let Some(v) = payload.get("jackett_key").and_then(|v| v.as_str()) { new_config.jackett_key = v.to_string(); }
-    if let Some(v) = payload.get("transmission_url").and_then(|v| v.as_str()) { new_config.transmission_url = v.to_string(); }
-    if let Some(v) = payload.get("transmission_user").and_then(|v| v.as_str()) { new_config.transmission_user = v.to_string(); }
-    if let Some(v) = payload.get("transmission_pass").and_then(|v| v.as_str()) { new_config.transmission_pass = v.to_string(); }
-    if let Some(v) = payload.get("plex_url").and_then(|v| v.as_str()) { new_config.plex_url = v.to_string(); }
-    if let Some(v) = payload.get("plex_token").and_then(|v| v.as_str()) { new_config.plex_token = v.to_string(); }
-    if let Some(v) = payload.get("jellyfin_url").and_then(|v| v.as_str()) { new_config.jellyfin_url = v.to_string(); }
-    if let Some(v) = payload.get("jellyfin_key").and_then(|v| v.as_str()) { new_config.jellyfin_key = v.to_string(); }
-    if let Some(v) = payload.get("emby_url").and_then(|v| v.as_str()) { new_config.emby_url = v.to_string(); }
-    if let Some(v) = payload.get("emby_key").and_then(|v| v.as_str()) { new_config.emby_key = v.to_string(); }
-
     {
         let mut config = state.config.write().await;
         if !config.dashboard_user.is_empty() && !config.dashboard_pass.is_empty() {
             return axum::http::StatusCode::FORBIDDEN;
         }
-        *config = new_config.clone();
+        if payload.dashboard_user.is_empty() || payload.dashboard_pass.is_empty() {
+            return axum::http::StatusCode::BAD_REQUEST;
+        }
+        *config = payload.clone();
     }
     
-    save_config_to_db(&state.db, &new_config).await;
+    save_config_to_db(&state.db, &payload).await;
     db::log_event(&state.db, "System", "Setup", "Initial mandatory setup completed").await;
     axum::http::StatusCode::OK
 }
@@ -452,8 +440,9 @@ async fn update_dashboard_config(
     {
         let mut config = state.config.write().await;
         
-        // Preserve existing keys if incoming payload has the mask
-        if payload.dashboard_pass == mask { payload.dashboard_pass = config.dashboard_pass.clone(); }
+        // Preserve existing keys if incoming payload has the mask or is empty
+        if payload.dashboard_user.is_empty() { payload.dashboard_user = config.dashboard_user.clone(); }
+        if payload.dashboard_pass.is_empty() || payload.dashboard_pass == mask { payload.dashboard_pass = config.dashboard_pass.clone(); }
         if payload.sonarr_key == mask { payload.sonarr_key = config.sonarr_key.clone(); }
         if payload.radarr_key == mask { payload.radarr_key = config.radarr_key.clone(); }
         if payload.jackett_key == mask { payload.jackett_key = config.jackett_key.clone(); }
