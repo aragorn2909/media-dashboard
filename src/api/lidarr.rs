@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use reqwest::Client;
 use crate::api::ServiceStatus;
 

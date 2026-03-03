@@ -48,13 +48,15 @@ struct Config {
     #[serde(default)]
     plex_token: String,
     #[serde(default)]
-    jellyfin_url: String,
+    pub jellyfin_url: String,
     #[serde(default)]
     pub jellyfin_key: String,
     #[serde(default)]
     pub emby_url: String,
     #[serde(default)]
     pub emby_key: String,
+    #[serde(default)]
+    pub prowlarr_url: String,
     #[serde(default)]
     pub prowlarr_key: String,
     #[serde(default)]
