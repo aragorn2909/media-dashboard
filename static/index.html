@@ -10,6 +10,7 @@
     <link href="/fonts/icons.css" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 
 <body>
@@ -20,10 +21,13 @@
             <h1>Media Dashboard</h1>
         </div>
         <nav>
-            <a href="/sonarr.html"><span class="material-icons">tv</span> TV</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
             <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/lidarr.html"><span class="material-icons">album</span> Lidarr</a>
+            <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
             <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
-            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/plex.html"><span class="material-icons">play_circle</span> Plex</a>
             <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
             <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
         </nav>
@@ -193,31 +197,73 @@
 
         function renderStatus(statuses) {
             const grid = document.getElementById('status-grid');
+
+            // Apply saved order if exists
+            const savedOrder = JSON.parse(localStorage.getItem('dashboard_order') || '[]');
+            if (savedOrder.length > 0) {
+                statuses.sort((a, b) => {
+                    let idxA = savedOrder.indexOf(a.name);
+                    let idxB = savedOrder.indexOf(b.name);
+                    if (idxA === -1) idxA = 999;
+                    if (idxB === -1) idxB = 999;
+                    return idxA - idxB;
+                });
+            }
+
             grid.innerHTML = '';
 
             statuses.forEach(service => {
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.style.cursor = 'pointer';
+                card.style.cursor = 'grab';
+                card.setAttribute('data-name', service.name);
 
                 const statusClass = service.active ? 'badge-seeding' : 'badge-paused';
                 const statusText = service.active ? 'Online' : 'Offline';
                 const link = SERVICE_LINKS[service.name] || '#';
 
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; pointer-events: none;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <img src="${getIcon(service.name)}" alt="${service.name}" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
                             <span style="font-size: 18px; font-weight: 700;">${service.name}</span>
                         </div>
                         <span class="status-badge ${statusClass}">${statusText}</span>
                     </div>
-                    ${service.version ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; opacity: 0.7;">v${service.version}</div>` : ''}
-                    <div style="font-size: 14px; color: var(--text-primary); line-height: 1.5;">${service.message}</div>
+                    ${service.version ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; opacity: 0.7; pointer-events: none;">v${service.version}</div>` : ''}
+                    <div style="font-size: 14px; color: var(--text-primary); line-height: 1.5; pointer-events: none;">${service.message}</div>
                     ${renderExtras(service)}
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <a href="${link}" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; pointer-events: auto;">
+                            Open ${service.name}
+                        </a>
+                    </div>
                 `;
-                card.onclick = () => window.location.href = link;
+                // Only follow link if NOT dragging
+                card.onclick = (e) => {
+                    if (e.target.tagName !== 'A' && e.target.parentElement?.tagName !== 'A') {
+                        // We'll let drag handled by Sortable
+                    }
+                };
                 grid.appendChild(card);
+            });
+
+            initSortable();
+        }
+
+        let sortableInstance;
+        function initSortable() {
+            const grid = document.getElementById('status-grid');
+            if (sortableInstance) sortableInstance.destroy();
+
+            sortableInstance = new Sortable(grid, {
+                animation: 150,
+                ghostClass: 'glass',
+                dragClass: 'sortable-drag',
+                onEnd: function () {
+                    const order = Array.from(grid.querySelectorAll('.card')).map(el => el.getAttribute('data-name'));
+                    localStorage.setItem('dashboard_order', JSON.stringify(order));
+                }
             });
         }
 

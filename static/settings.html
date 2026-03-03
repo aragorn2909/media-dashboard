@@ -55,11 +55,10 @@
             <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
             <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
             <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
-            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
-            <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
-            <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
             <a href="/lidarr.html"><span class="material-icons">album</span> Lidarr</a>
-            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
             <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
         </nav>
     </header>
@@ -117,6 +116,30 @@
             </div>
 
             <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">album</span> Lidarr Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="lidarr_url" placeholder="http://localhost:8686">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="lidarr_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">explore</span> Prowlarr Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="prowlarr_url" placeholder="http://localhost:9696">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="prowlarr_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
+            <div class="settings-section">
                 <h3><span class="material-icons" style="font-size:18px">search</span> Jackett Configuration</h3>
                 <div class="row">
                     <label>API URL</label>
@@ -141,30 +164,6 @@
                 <div class="row">
                     <label>Password</label>
                     <input type="password" id="transmission_pass" placeholder="Optional">
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3><span class="material-icons" style="font-size:18px">explore</span> Prowlarr Configuration</h3>
-                <div class="row">
-                    <label>API URL</label>
-                    <input type="text" id="prowlarr_url" placeholder="http://localhost:9696">
-                </div>
-                <div class="row">
-                    <label>API Key</label>
-                    <input type="password" id="prowlarr_key" placeholder="Enter API Key">
-                </div>
-            </div>
-
-            <div class="settings-section">
-                <h3><span class="material-icons" style="font-size:18px">album</span> Lidarr Configuration</h3>
-                <div class="row">
-                    <label>API URL</label>
-                    <input type="text" id="lidarr_url" placeholder="http://localhost:8686">
-                </div>
-                <div class="row">
-                    <label>API Key</label>
-                    <input type="password" id="lidarr_key" placeholder="Enter API Key">
                 </div>
             </div>
 
