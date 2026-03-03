@@ -44,24 +44,6 @@
     </header>
 
     <div class="container" style="animation: fadeIn 0.6s ease-out;">
-        <!-- Stats Row -->
-        <div id="stats-container" style="margin-bottom: 32px; display: none;">
-            <div class="card"
-                style="flex-direction: row; align-items: center; justify-content: space-between; padding: 16px 24px;">
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <div style="background: rgba(99, 102, 241, 0.1); padding: 12px; border-radius: 12px;">
-                        <span class="material-icons"
-                            style="font-size: 32px; color: var(--primary-color);">analytics</span>
-                    </div>
-                    <div>
-                        <div
-                            style="font-size: 14px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
-                            Library Ecosystem</div>
-                        <div id="disk-stats" style="font-size: 16px; font-weight: 500; margin-top: 4px;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Upcoming Calendar -->
         <div id="calendar-container" style="margin-bottom: 32px; display: none;">
@@ -305,7 +287,6 @@
 
         fetchStatus();
         fetchCalendar();
-        fetchStats();
         setInterval(fetchStatus, 30000); // Update every 30 seconds
 
         async function fetchCalendar() {
@@ -375,36 +356,6 @@
                     `;
                     grid.appendChild(el);
                 });
-            }
-        }
-
-        function renderStats(data) {
-            const container = document.getElementById('stats-container');
-            const diskDiv = document.getElementById('disk-stats');
-
-            let statsStr = [];
-            const seenPaths = new Set();
-
-            const processDisk = (diskData) => {
-                if (diskData && Array.isArray(diskData)) {
-                    diskData.forEach(d => {
-                        if (!seenPaths.has(d.path)) {
-                            const freeGb = (d.freeSpace / 1024 / 1024 / 1024).toFixed(0);
-                            const totalGb = (d.totalSpace / 1024 / 1024 / 1024).toFixed(0);
-                            const freeTb = (d.freeSpace / 1024 / 1024 / 1024 / 1024).toFixed(2);
-                            statsStr.push(`${d.path}: <strong>${freeTb} TB</strong> Free (${freeGb}/${totalGb} GB)`);
-                            seenPaths.add(d.path);
-                        }
-                    });
-                }
-            };
-
-            processDisk(data.sonarr_disk);
-            processDisk(data.radarr_disk);
-
-            if (statsStr.length > 0) {
-                container.style.display = 'block';
-                diskDiv.innerHTML = statsStr.join(' <span style="margin:0 12px; opacity:0.3">|</span> ');
             }
         }
 
