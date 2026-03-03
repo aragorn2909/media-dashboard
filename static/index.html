@@ -100,6 +100,7 @@
             'Transmission': '/transmission.html',
             'Jackett': '/jackett.html',
             'Plex': '/plex.html',
+            'Prowlarr': '/prowlarr.html',
         };
 
         function renderExtras(service) {
@@ -147,6 +148,11 @@
                     }
                     return `<div class="extras">
                         <div class="extras-row extras-ok"><span class="material-icons" style="font-size:16px">check_circle</span> ${e.total_indexers || 0} indexers · All healthy</div>
+                    </div>`;
+
+                case 'Prowlarr':
+                    return `<div class="extras">
+                        <div class="extras-row"><span class="material-icons" style="font-size:16px">explore</span> ${e.enabled_indexers || 0} / ${e.total_indexers || 0} indexers active</div>
                     </div>`;
 
                 case 'Plex':
@@ -214,7 +220,8 @@
                 'Jackett': '/jackett.svg',
                 'Plex': '/plex.svg',
                 'Jellyfin': '/jellyfin.svg',
-                'Emby': '/emby.svg'
+                'Emby': '/emby.svg',
+                'Prowlarr': '/prowlarr.png'
             };
             return icons[name] || '/favicon.svg';
         }

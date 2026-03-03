@@ -5,15 +5,15 @@
     <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Dashboard - Indexers</title>
+    <title>Media Dashboard - Prowlarr Indexers</title>
     <link href="/fonts/inter.css" rel="stylesheet">
     <link href="/fonts/icons.css" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/style.css">
     <style>
         .info-banner {
-            background-color: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            background-color: rgba(147, 51, 234, 0.1);
+            border: 1px solid rgba(147, 51, 234, 0.3);
             border-radius: 12px;
             padding: 16px 20px;
             margin-bottom: 32px;
@@ -23,11 +23,11 @@
         }
 
         .info-banner .material-icons {
-            color: var(--primary-color);
+            color: #9333ea;
         }
 
         .info-banner a {
-            color: var(--primary-color);
+            color: #9333ea;
             text-decoration: none;
             font-weight: 600;
         }
@@ -59,16 +59,16 @@
 <body>
     <header>
         <div style="display: flex; align-items: center; gap: 16px;">
-            <img src="/favicon.svg" alt="Logo"
+            <img src="/prowlarr.png" alt="Logo"
                 style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            <h1>Indexers</h1>
+            <h1>Prowlarr Indexers</h1>
         </div>
         <nav>
             <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
             <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
             <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
             <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
-            <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
             <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
             <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
         </nav>
@@ -76,10 +76,10 @@
 
     <div class="container" style="animation: fadeIn 0.6s ease-out;">
         <div class="info-banner">
-            <span class="material-icons">info</span>
+            <span class="material-icons">explore</span>
             <div>
-                Indexers are managed through the Jackett web interface.
-                <a href="#" id="jackett-link" target="_blank">Open Jackett UI →</a>
+                Indexers are managed through the Prowlarr web interface.
+                <a href="#" id="prowlarr-link" target="_blank">Open Prowlarr UI →</a>
             </div>
         </div>
 
@@ -93,8 +93,8 @@
                     onclick="loadIndexers()">
                     <span class="material-icons">refresh</span> Refresh
                 </button>
-                <button class="btn btn-primary" id="add-indexer-btn"
-                    onclick="window.open(document.getElementById('jackett-link').href, '_blank')">
+                <button class="btn btn-primary" id="add-indexer-btn" style="background: #9333ea"
+                    onclick="window.open(document.getElementById('prowlarr-link').href, '_blank')">
                     <span class="material-icons">add</span> Add Indexer
                 </button>
             </div>
@@ -111,33 +111,33 @@
             try {
                 const resp = await fetch('/api/config');
                 const config = await resp.json();
-                if (config.jackett_url) {
-                    document.getElementById('jackett-link').href = config.jackett_url;
+                if (config.prowlarr_url) {
+                    document.getElementById('prowlarr-link').href = config.prowlarr_url;
                 }
             } catch (e) { }
             loadIndexers();
         }
 
         async function loadIndexers() {
+            const container = document.getElementById('indexers-list');
             try {
-                const resp = await fetch('/api/jackett/indexers');
+                const resp = await fetch('/api/prowlarr/indexers');
+                if (!resp.ok) throw new Error('Failed to fetch');
                 const data = await resp.json();
                 renderIndexers(data);
             } catch (e) {
-                document.getElementById('indexers-list').innerHTML =
-                    '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load indexers. Check Jackett connection in <a href="/settings.html" style="color: var(--primary-color)">Settings</a>.</div>';
+                container.innerHTML =
+                    '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load indexers. Check Prowlarr connection in <a href="/settings.html" style="color: var(--primary-color)">Settings</a>.</div>';
             }
         }
 
-        function renderIndexers(data) {
+        function renderIndexers(indexers) {
             const container = document.getElementById('indexers-list');
-            // Only show configured indexers
-            let indexers = Array.isArray(data) ? data.filter(idx => idx.configured !== false) : [];
 
-            if (!indexers.length) {
+            if (!Array.isArray(indexers) || !indexers.length) {
                 container.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-secondary);">
                     No configured indexers found. 
-                    <a href="${document.getElementById('jackett-link').href}" target="_blank" style="color: var(--primary-color); font-weight: 600;">Open Jackett UI →</a> to add indexers.
+                    <a href="${document.getElementById('prowlarr-link').href}" target="_blank" style="color: #9333ea; font-weight: 600;">Open Prowlarr UI →</a> to add indexers.
                 </div>`;
                 return;
             }
@@ -145,20 +145,17 @@
             container.innerHTML = `<table>
                 <thead><tr>
                     <th>Name</th>
-                    <th>ID</th>
-                    <th>Type</th>
+                    <th>Protocol</th>
                     <th>Status</th>
                 </tr></thead>
                 <tbody>${indexers.map(idx => {
-                const name = idx.name || idx.title || 'Unknown';
-                const id = idx.id || idx.configured_id || '-';
-                const type = idx.type || idx.language || 'public';
-                const configured = idx.configured !== undefined ? idx.configured : true;
+                const name = idx.name || 'Unknown';
+                const protocol = idx.protocol || 'torrent';
+                const enabled = idx.enabled !== false;
                 return `<tr>
                         <td><strong>${name}</strong></td>
-                        <td style="color: var(--text-secondary); font-size: 13px;">${id}</td>
-                        <td>${type}</td>
-                        <td><span class="status-badge ${configured ? 'badge-configured' : 'badge-error'}">${configured ? 'Active' : 'Error'}</span></td>
+                        <td style="text-transform: capitalize;">${protocol}</td>
+                        <td><span class="status-badge ${enabled ? 'badge-configured' : 'badge-error'}">${enabled ? 'Enabled' : 'Disabled'}</span></td>
                     </tr>`;
             }).join('')}</tbody>
             </table>`;

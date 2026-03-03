@@ -271,6 +271,15 @@
                 <label>Jackett API Key</label>
                 <input type="password" id="jackett_key">
             </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-glass); margin: 24px 0;">
+            <div class="input-group">
+                <label>Prowlarr URL</label>
+                <input type="text" id="prowlarr_url" placeholder="http://192.168.1.100:9696">
+            </div>
+            <div class="input-group">
+                <label>Prowlarr API Key</label>
+                <input type="password" id="prowlarr_key">
+            </div>
 
             <div class="setup-actions">
                 <button class="btn btn-skip" onclick="finishSetup()">Skip & Finish</button>
@@ -315,7 +324,9 @@
                 jellyfin_url: document.getElementById('jellyfin_url').value.trim(),
                 jellyfin_key: document.getElementById('jellyfin_key').value.trim(),
                 emby_url: document.getElementById('emby_url').value.trim(),
-                emby_key: document.getElementById('emby_key').value.trim()
+                emby_key: document.getElementById('emby_key').value.trim(),
+                prowlarr_url: document.getElementById('prowlarr_url').value.trim(),
+                prowlarr_key: document.getElementById('prowlarr_key').value.trim()
             };
 
             try {

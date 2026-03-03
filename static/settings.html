@@ -56,7 +56,8 @@
             <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
             <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
             <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
-            <a href="/jackett.html"><span class="material-icons">search</span> Indexers</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
+            <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
             <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
         </nav>
     </header>
@@ -141,6 +142,18 @@
                 </div>
             </div>
 
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">explore</span> Prowlarr Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="prowlarr_url" placeholder="http://localhost:9696">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="prowlarr_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
             <div class="settings-section" style="border-top: 1px solid var(--border-glass); padding-top: 40px;">
                 <h3><span class="material-icons" style="font-size:18px">play_circle</span> Media Server Configuration
                 </h3>
@@ -207,6 +220,8 @@
                 document.getElementById('jellyfin_key').value = config.jellyfin_key || '';
                 document.getElementById('emby_url').value = config.emby_url || '';
                 document.getElementById('emby_key').value = config.emby_key || '';
+                document.getElementById('prowlarr_url').value = config.prowlarr_url || '';
+                document.getElementById('prowlarr_key').value = config.prowlarr_key || '';
             } catch (e) { console.error('Error loading config:', e); }
         }
 
@@ -228,7 +243,9 @@
                 jellyfin_url: document.getElementById('jellyfin_url').value,
                 jellyfin_key: document.getElementById('jellyfin_key').value,
                 emby_url: document.getElementById('emby_url').value,
-                emby_key: document.getElementById('emby_key').value
+                emby_key: document.getElementById('emby_key').value,
+                prowlarr_url: document.getElementById('prowlarr_url').value,
+                prowlarr_key: document.getElementById('prowlarr_key').value
             };
 
             try {
