@@ -71,7 +71,7 @@ fn clean_plex_url(url: &str) -> String {
     base
 }
 
-async fn plex_get(client: &Client, url: &str, token: &str) -> reqwest::RequestBuilder {
+fn plex_get(client: &Client, url: &str, token: &str) -> reqwest::RequestBuilder {
     client.get(url)
         .header("Accept", "application/json")
         .header("X-Plex-Token", token.trim())
