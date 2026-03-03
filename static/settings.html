@@ -58,6 +58,8 @@
             <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
             <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
             <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
+            <a href="/lidarr.html"><span class="material-icons">album</span> Lidarr</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
             <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
         </nav>
     </header>
@@ -154,6 +156,18 @@
                 </div>
             </div>
 
+            <div class="settings-section">
+                <h3><span class="material-icons" style="font-size:18px">album</span> Lidarr Configuration</h3>
+                <div class="row">
+                    <label>API URL</label>
+                    <input type="text" id="lidarr_url" placeholder="http://localhost:8686">
+                </div>
+                <div class="row">
+                    <label>API Key</label>
+                    <input type="password" id="lidarr_key" placeholder="Enter API Key">
+                </div>
+            </div>
+
             <div class="settings-section" style="border-top: 1px solid var(--border-glass); padding-top: 40px;">
                 <h3><span class="material-icons" style="font-size:18px">play_circle</span> Media Server Configuration
                 </h3>
@@ -222,6 +236,8 @@
                 document.getElementById('emby_key').value = config.emby_key || '';
                 document.getElementById('prowlarr_url').value = config.prowlarr_url || '';
                 document.getElementById('prowlarr_key').value = config.prowlarr_key || '';
+                document.getElementById('lidarr_url').value = config.lidarr_url || '';
+                document.getElementById('lidarr_key').value = config.lidarr_key || '';
             } catch (e) { console.error('Error loading config:', e); }
         }
 
@@ -245,7 +261,9 @@
                 emby_url: document.getElementById('emby_url').value,
                 emby_key: document.getElementById('emby_key').value,
                 prowlarr_url: document.getElementById('prowlarr_url').value,
-                prowlarr_key: document.getElementById('prowlarr_key').value
+                prowlarr_key: document.getElementById('prowlarr_key').value,
+                lidarr_url: document.getElementById('lidarr_url').value,
+                lidarr_key: document.getElementById('lidarr_key').value
             };
 
             try {

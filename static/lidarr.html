@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>(function () { const t = localStorage.getItem("theme") || "dark"; if (t === "light") document.documentElement.classList.add("light-mode") })();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Dashboard - Artists</title>
+    <link href="/fonts/inter.css" rel="stylesheet">
+    <link href="/fonts/icons.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .result-poster {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: var(--surface-light);
+            flex-shrink: 0;
+            border: 2px solid var(--border-glass);
+        }
+
+        .result-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .result-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .badge-continuing {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-monitored {
+            background-color: rgba(99, 102, 241, 0.2);
+            color: var(--primary-color);
+        }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 100;
+            animation: slideUp 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .toast-success {
+            background-color: rgba(16, 185, 129, 0.9);
+        }
+
+        .toast-error {
+            background-color: rgba(239, 68, 68, 0.9);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <img src="/lidarr.png" alt="Logo"
+                style="width: 32px; height: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <h1>Artists</h1>
+        </div>
+        <nav>
+            <a href="/"><span class="material-icons">dashboard</span> Dashboard</a>
+            <a href="/sonarr.html"><span class="material-icons">tv</span> TV Shows</a>
+            <a href="/radarr.html"><span class="material-icons">movie</span> Movies</a>
+            <a href="/transmission.html"><span class="material-icons">download</span> Torrents</a>
+            <a href="/jackett.html"><span class="material-icons">search</span> Jackett</a>
+            <a href="/prowlarr.html"><span class="material-icons">explore</span> Prowlarr</a>
+            <a href="/logs.html"><span class="material-icons">history</span> Logs</a>
+            <a href="/settings.html"><span class="material-icons">settings</span> Settings</a>
+        </nav>
+    </header>
+
+    <div class="container" style="animation: fadeIn 0.6s ease-out;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2
+                style="font-size: 16px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons" style="font-size: 18px;">library_music</span> Your Music Library
+            </h2>
+            <button class="btn" style="background: var(--surface-light); color: var(--text-primary);"
+                onclick="loadArtists()">
+                <span class="material-icons">refresh</span> Refresh
+            </button>
+        </div>
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <div id="artists-list">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary);">Loading artists...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function init() {
+            loadArtists();
+        }
+
+        async function loadArtists() {
+            try {
+                const resp = await fetch('/api/lidarr/artists');
+                const artists = await resp.json();
+                renderArtists(artists);
+            } catch (e) {
+                document.getElementById('artists-list').innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load artists. Check Lidarr connection.</div>';
+            }
+        }
+
+        function renderArtists(artists) {
+            const container = document.getElementById('artists-list');
+            if (!artists.length) {
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No artists found in your library.</div>';
+                return;
+            }
+
+            artists.sort((a, b) => a.artistName.localeCompare(b.artistName));
+
+            container.innerHTML = `<table>
+                <thead><tr>
+                    <th>Artist</th>
+                    <th>Albums</th>
+                    <th>Monitored</th>
+                    <th>Status</th>
+                </tr></thead>
+                <tbody>${artists.map(a => {
+                const albums = a.statistics ? a.statistics.albumCount : 0;
+                return `<tr>
+                        <td><strong>${a.artistName}</strong></td>
+                        <td>${albums}</td>
+                        <td>${a.monitored ? '<span class="status-badge badge-monitored">Yes</span>' : 'No'}</td>
+                        <td><span class="status-badge badge-continuing">Active</span></td>
+                    </tr>`;
+            }).join('')}</tbody>
+            </table>`;
+        }
+
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

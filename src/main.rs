@@ -56,9 +56,11 @@ struct Config {
     #[serde(default)]
     pub emby_key: String,
     #[serde(default)]
-    pub prowlarr_url: String,
-    #[serde(default)]
     pub prowlarr_key: String,
+    #[serde(default)]
+    pub lidarr_url: String,
+    #[serde(default)]
+    pub lidarr_key: String,
 }
 
 #[derive(Clone)]
@@ -251,6 +253,9 @@ async fn main() {
         // Prowlarr
         .route("/api/prowlarr/indexers", get(prowlarr_list_indexers))
         .route("/api/prowlarr/status", get(prowlarr_get_status))
+        // Lidarr
+        .route("/api/lidarr/artists", get(lidarr_list_artists))
+        .route("/api/lidarr/status", get(lidarr_get_status))
         // Transmission CRUD
         .route("/api/transmission/torrents", get(transmission_list_torrents).post(transmission_add_torrent))
         .route("/api/transmission/torrents/:id", delete(transmission_remove_torrent))
@@ -327,6 +332,9 @@ async fn get_all_status(
     }
     if !config.prowlarr_url.is_empty() {
         statuses.push(api::prowlarr::get_status(client, &config.prowlarr_url, &config.prowlarr_key).await);
+    }
+    if !config.lidarr_url.is_empty() {
+        statuses.push(api::lidarr::get_status(client, &config.lidarr_url, &config.lidarr_key).await);
     }
 
     Json(statuses)
@@ -434,7 +442,8 @@ async fn get_dashboard_config(
     if !config.plex_token.is_empty() { config.plex_token = mask.clone(); }
     if !config.jellyfin_key.is_empty() { config.jellyfin_key = mask.clone(); }
     if !config.emby_key.is_empty() { config.emby_key = mask.clone(); }
-    if !config.prowlarr_key.is_empty() { config.prowlarr_key = mask; }
+    if !config.prowlarr_key.is_empty() { config.prowlarr_key = mask.clone(); }
+    if !config.lidarr_key.is_empty() { config.lidarr_key = mask; }
     
     Json(config)
 }
@@ -444,7 +453,7 @@ async fn update_dashboard_config(
     Json(mut payload): Json<Config>,
 ) -> axum::http::StatusCode {
     let is_safe = |u: &str| !u.contains("169.254.");
-    if !is_safe(&payload.sonarr_url) || !is_safe(&payload.radarr_url) || !is_safe(&payload.jackett_url) || !is_safe(&payload.transmission_url) || !is_safe(&payload.plex_url) || !is_safe(&payload.jellyfin_url) || !is_safe(&payload.emby_url) || !is_safe(&payload.prowlarr_url) {
+    if !is_safe(&payload.sonarr_url) || !is_safe(&payload.radarr_url) || !is_safe(&payload.jackett_url) || !is_safe(&payload.transmission_url) || !is_safe(&payload.plex_url) || !is_safe(&payload.jellyfin_url) || !is_safe(&payload.emby_url) || !is_safe(&payload.prowlarr_url) || !is_safe(&payload.lidarr_url) {
         return axum::http::StatusCode::BAD_REQUEST;
     }
 
@@ -463,6 +472,7 @@ async fn update_dashboard_config(
         if payload.jellyfin_key == mask { payload.jellyfin_key = config.jellyfin_key.clone(); }
         if payload.emby_key == mask { payload.emby_key = config.emby_key.clone(); }
         if payload.prowlarr_key == mask { payload.prowlarr_key = config.prowlarr_key.clone(); }
+        if payload.lidarr_key == mask { payload.lidarr_key = config.lidarr_key.clone(); }
         
         *config = payload.clone();
     }
@@ -486,6 +496,8 @@ async fn get_service_settings(
             .await.map(Json).map_err(|e| internal_err(e)),
         "prowlarr" => api::prowlarr::get_config(client, &config.prowlarr_url, &config.prowlarr_key)
             .await.map(Json).map_err(|e| internal_err(e)),
+        "lidarr" => api::lidarr::get_config(client, &config.lidarr_url, &config.lidarr_key)
+            .await.map(Json).map_err(|e| internal_err(e)),
         _ => Err((axum::http::StatusCode::NOT_FOUND, "Service not found".to_string())),
     }
 }
@@ -502,6 +514,7 @@ async fn update_service_settings(
         "radarr" => api::radarr::update_config(client, &config.radarr_url, &config.radarr_key, payload).await,
         "transmission" => api::transmission::update_config(client, &config.transmission_url, &config.transmission_user, &config.transmission_pass, payload).await,
         "prowlarr" => api::prowlarr::update_config(client, &config.prowlarr_url, &config.prowlarr_key, payload).await,
+        "lidarr" => api::lidarr::update_config(client, &config.lidarr_url, &config.lidarr_key, payload).await,
         _ => return Err((axum::http::StatusCode::NOT_FOUND, "Service not found".to_string())),
     };
     if res.is_ok() {
@@ -703,6 +716,23 @@ async fn prowlarr_get_status(
     Json(api::prowlarr::get_status(&state.client, &config.prowlarr_url, &config.prowlarr_key).await)
 }
 
+// ===================== Lidarr Handlers =====================
+
+async fn lidarr_list_artists(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let config = state.config.read().await;
+    api::lidarr::list_artists(&state.client, &config.lidarr_url, &config.lidarr_key)
+        .await.map(Json).map_err(|e| internal_err(e))
+}
+
+async fn lidarr_get_status(
+    State(state): State<Arc<AppState>>,
+) -> Json<ServiceStatus> {
+    let config = state.config.read().await;
+    Json(api::lidarr::get_status(&state.client, &config.lidarr_url, &config.lidarr_key).await)
+}
+
 // ===================== Transmission Handlers =====================
 
 async fn transmission_list_torrents(
@@ -779,6 +809,8 @@ async fn load_config_from_db(pool: &SqlitePool) -> Config {
         emby_key: db::get_setting(pool, "emby_key").await.unwrap_or_default(),
         prowlarr_url: db::get_setting(pool, "prowlarr_url").await.unwrap_or_default(),
         prowlarr_key: db::get_setting(pool, "prowlarr_key").await.unwrap_or_default(),
+        lidarr_url: db::get_setting(pool, "lidarr_url").await.unwrap_or_default(),
+        lidarr_key: db::get_setting(pool, "lidarr_key").await.unwrap_or_default(),
     }
 }
 
@@ -802,6 +834,8 @@ async fn save_config_to_db(pool: &SqlitePool, config: &Config) {
     db::set_setting(pool, "emby_key", &config.emby_key).await;
     db::set_setting(pool, "prowlarr_url", &config.prowlarr_url).await;
     db::set_setting(pool, "prowlarr_key", &config.prowlarr_key).await;
+    db::set_setting(pool, "lidarr_url", &config.lidarr_url).await;
+    db::set_setting(pool, "lidarr_key", &config.lidarr_key).await;
 }
 
 // ===================== System & Logs Handlers =====================

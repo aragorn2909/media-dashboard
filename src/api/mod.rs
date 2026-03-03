@@ -5,6 +5,7 @@ pub mod transmission;
 pub mod plex;
 pub mod jellyfin;
 pub mod prowlarr;
+pub mod lidarr;
 pub mod emby;
 
 use serde::Serialize;

@@ -280,6 +280,15 @@
                 <label>Prowlarr API Key</label>
                 <input type="password" id="prowlarr_key">
             </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-glass); margin: 24px 0;">
+            <div class="input-group">
+                <label>Lidarr URL</label>
+                <input type="text" id="lidarr_url" placeholder="http://192.168.1.100:8686">
+            </div>
+            <div class="input-group">
+                <label>Lidarr API Key</label>
+                <input type="password" id="lidarr_key">
+            </div>
 
             <div class="setup-actions">
                 <button class="btn btn-skip" onclick="finishSetup()">Skip & Finish</button>
@@ -326,7 +335,9 @@
                 emby_url: document.getElementById('emby_url').value.trim(),
                 emby_key: document.getElementById('emby_key').value.trim(),
                 prowlarr_url: document.getElementById('prowlarr_url').value.trim(),
-                prowlarr_key: document.getElementById('prowlarr_key').value.trim()
+                prowlarr_key: document.getElementById('prowlarr_key').value.trim(),
+                lidarr_url: document.getElementById('lidarr_url').value.trim(),
+                lidarr_key: document.getElementById('lidarr_key').value.trim()
             };
 
             try {
