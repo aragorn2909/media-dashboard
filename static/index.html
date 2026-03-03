@@ -223,17 +223,19 @@
                 const link = SERVICE_LINKS[service.name] || '#';
 
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; pointer-events: none;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${getIcon(service.name)}" alt="${service.name}" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
-                            <span style="font-size: 18px; font-weight: 700;">${service.name}</span>
+                    <div class="card-content">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; pointer-events: none;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <img src="${getIcon(service.name)}" alt="${service.name}" style="width: 28px; height: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">
+                                <span style="font-size: 18px; font-weight: 700;">${service.name}</span>
+                            </div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
                         </div>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
+                        ${service.version ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; opacity: 0.7; pointer-events: none;">v${service.version}</div>` : ''}
+                        <div style="font-size: 14px; color: var(--text-primary); line-height: 1.5; pointer-events: none;">${service.message}</div>
+                        ${renderExtras(service)}
                     </div>
-                    ${service.version ? `<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; opacity: 0.7; pointer-events: none;">v${service.version}</div>` : ''}
-                    <div style="font-size: 14px; color: var(--text-primary); line-height: 1.5; pointer-events: none;">${service.message}</div>
-                    ${renderExtras(service)}
-                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                    <div class="card-footer">
                         <a href="${link}" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; pointer-events: auto;">
                             Open ${service.name}
                         </a>
