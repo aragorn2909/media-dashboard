@@ -31,6 +31,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
                 name: "Jackett".to_string(),
                 active: true,
                 message: "Running".to_string(),
+                url: url.to_string(),
                 version: None,
                 extras: Some(serde_json::json!({
                     "total_indexers": total,
@@ -45,6 +46,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
                 name: "Jackett".to_string(),
                 active: false,
                 message: format!("HTTP — {}", body.chars().take(80).collect::<String>()),
+                url: url.to_string(),
                 version: None,
                 extras: None,
             }
@@ -53,6 +55,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
             name: "Jackett".to_string(),
             active: false,
             message: format!("Connection error: {}", e),
+            url: url.to_string(),
             version: None,
             extras: None,
         },

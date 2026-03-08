@@ -203,6 +203,7 @@
                 const statusClass = service.active ? 'badge-seeding' : 'badge-paused';
                 const statusText = service.active ? 'Online' : 'Offline';
                 const link = SERVICE_LINKS[service.name] || '#';
+                const externalUrl = service.url || '#';
 
                 card.innerHTML = `
                     <div class="card-content">
@@ -218,15 +219,17 @@
                         ${renderExtras(service)}
                     </div>
                     <div class="card-footer">
-                        <a href="${link}" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; pointer-events: auto;">
+                        <a href="${externalUrl}" class="btn btn-primary" target="_blank" rel="noopener noreferrer" style="font-size: 12px; padding: 6px 12px; pointer-events: auto;">
                             Open ${service.name}
                         </a>
                     </div>
                 `;
-                // Only follow link if NOT dragging
+                
+                // Card click opens internal page
                 card.onclick = (e) => {
+                    // Don't trigger if clicking the "Open" button or something else that absorbs events
                     if (e.target.tagName !== 'A' && e.target.parentElement?.tagName !== 'A') {
-                        // We'll let drag handled by Sortable
+                        location.href = link;
                     }
                 };
                 grid.appendChild(card);
@@ -242,6 +245,8 @@
 
             sortableInstance = new Sortable(grid, {
                 animation: 150,
+                delay: 200,
+                delayOnTouchOnly: false,
                 ghostClass: 'glass',
                 dragClass: 'sortable-drag',
                 onEnd: function () {

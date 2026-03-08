@@ -15,6 +15,7 @@ pub struct ServiceStatus {
     pub name: String,
     pub active: bool,
     pub message: String,
+    pub url: String,
     pub version: Option<String>,
     pub extras: Option<serde_json::Value>,
 }

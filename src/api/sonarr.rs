@@ -27,6 +27,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
                             name: "Sonarr".to_string(),
                             active: true,
                             message: "Running".to_string(),
+                            url: url.to_string(),
                             version: Some(status.version),
                             extras: Some(extras),
                         }
@@ -35,6 +36,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
                         name: "Sonarr".to_string(),
                         active: true,
                         message: "Parse Error".to_string(),
+                        url: url.to_string(),
                         version: None,
                         extras: None,
                     },
@@ -44,6 +46,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
                     name: "Sonarr".to_string(),
                     active: false,
                     message: format!("HTTP {}", resp.status()),
+                    url: url.to_string(),
                     version: None,
                     extras: None,
                 }
@@ -53,6 +56,7 @@ pub async fn get_status(client: &Client, url: &str, api_key: &str) -> ServiceSta
             name: "Sonarr".to_string(),
             active: false,
             message: e.to_string(),
+            url: url.to_string(),
             version: None,
             extras: None,
         },
